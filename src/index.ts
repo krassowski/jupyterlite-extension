@@ -25,7 +25,6 @@ import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
 import { API_URL } from './config';
 
-
 /**
  * HELP FUNCTIONS 
  */
