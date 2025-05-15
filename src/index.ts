@@ -2,12 +2,7 @@ import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application'
 import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ITranslator } from '@jupyterlab/translation';
-import {
-  Dialog,
-  showDialog,
-  ToolbarButton,
-  showErrorMessage
-} from '@jupyterlab/apputils';
+import { Dialog, showDialog, ToolbarButton, showErrorMessage } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
