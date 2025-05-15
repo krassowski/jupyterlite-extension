@@ -13,7 +13,7 @@ mimetype: ''
 mimetype_name: ''
 project_short_description: A Jupyter extension for k12 education
 python_name: jupytereverywhere
-repository: ''
+repository: https://github.com/JupyterEverywhere/jupyterlite-extension
 test: true
 viewer_name: ''
 
