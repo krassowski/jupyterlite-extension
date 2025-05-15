@@ -9,7 +9,6 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { fileUploadIcon } from '@jupyterlab/ui-components'; // Import JupyterLab's built-in upload icon
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
-import { API_URL } from './config';
 
 /**
  * HELP FUNCTIONS
@@ -45,7 +44,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
     translator: ITranslator,
     docManager: IDocumentManager
   ) => {
-    const sharingService = new SharingService(API_URL);
+    // Fallback to a valid URL for unit testing so that the plugin can start without configuration
+    const api_url = PageConfig.getOption('sharing_service_api_url') ?? 'http://localhost';
+    const sharingService = new SharingService(api_url);
     console.log('JupyterLab extension jupytereverywhere is activated!');
 
     // Check if commands were disabled on system settings via schema/plugin.json
