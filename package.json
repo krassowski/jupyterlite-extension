@@ -55,7 +55,7 @@
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "tsc -w --sourceMap",
         "watch:labextension": "jupyter labextension watch .",
-        "inject-api-url": "replace-in-file \"__API_URL__\" \"$API_URL\" lib/config.js"
+        "inject-api-url": "replace-in-file \"__API_URL__\" \"${API_URL:=__API_URL_MISSING__}\" lib/config.js"
     },
     "dependencies": {
         "@jupyterlab/application": "^4.0.0",
