@@ -2,11 +2,9 @@ import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application'
 import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ITranslator } from '@jupyterlab/translation';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import {
   Dialog,
   showDialog,
-  ICommandPalette,
   ToolbarButton,
   showErrorMessage
 } from '@jupyterlab/apputils';
@@ -45,13 +43,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
-  requires: [INotebookTracker, ISettingRegistry, ICommandPalette, ITranslator, IDocumentManager],
+  requires: [INotebookTracker, ITranslator, IDocumentManager],
   activate: (
     app: JupyterFrontEnd,
     tracker: INotebookTracker,
     translator: ITranslator,
-    docManager: IDocumentManager,
-    settingRegistry: ISettingRegistry | null
+    docManager: IDocumentManager
   ) => {
     const sharingService = new SharingService(API_URL);
     console.log('JupyterLab extension jupytereverywhere is activated!');
