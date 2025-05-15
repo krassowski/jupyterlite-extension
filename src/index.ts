@@ -45,7 +45,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     docManager: IDocumentManager
   ) => {
     // Fallback to a valid URL for unit testing so that the plugin can start without configuration
-    const api_url = PageConfig.getOption('sharing_service_api_url') ?? 'http://localhost';
+    const api_url = PageConfig.getOption('sharing_service_api_url') || 'http://localhost';
     const sharingService = new SharingService(api_url);
     console.log('JupyterLab extension jupytereverywhere is activated!');
 
