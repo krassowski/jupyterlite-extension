@@ -1,19 +1,11 @@
-import {
-  ICell,
-  INotebookContent,
-  isCode,
-  isMarkdown,
-  isRaw
-} from '@jupyterlab/nbformat';
+import { ICell, INotebookContent, isCode, isMarkdown, isRaw } from '@jupyterlab/nbformat';
 
 export interface INotebookModel {
   password: string;
   notebook: INotebookContent;
 }
 
-export function validateNotebookContent(
-  value: unknown
-): value is INotebookContent {
+export function validateNotebookContent(value: unknown): value is INotebookContent {
   if (!value || typeof value !== 'object') {
     return false;
   }

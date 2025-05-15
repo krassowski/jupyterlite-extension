@@ -1,24 +1,17 @@
-import {
-  JupyterFrontEnd,
-  JupyterFrontEndPlugin
-} from '@jupyterlab/application';
-import {
-  INotebookTracker,
-  INotebookModel,
-  NotebookActions,
-  NotebookPanel
-} from '@jupyterlab/notebook';
-import {ReadonlyPartialJSONObject,} from '@lumino/coreutils';
-import { ITranslator} from '@jupyterlab/translation';
+import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application';
+import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
+import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
+import { ITranslator } from '@jupyterlab/translation';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
-import { 
-  Dialog, 
+import {
+  Dialog,
   showDialog,
   ICommandPalette,
-  ToolbarButton, 
-  showErrorMessage} from '@jupyterlab/apputils';
+  ToolbarButton,
+  showErrorMessage
+} from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
-import { PageConfig} from '@jupyterlab/coreutils';
+import { PageConfig } from '@jupyterlab/coreutils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
 import { fileUploadIcon } from '@jupyterlab/ui-components'; // Import JupyterLab's built-in upload icon
 import { INotebookContent } from '@jupyterlab/nbformat';
@@ -26,54 +19,72 @@ import { SharingService } from './sharing-service';
 import { API_URL } from './config';
 
 /**
- * HELP FUNCTIONS 
+ * HELP FUNCTIONS
  */
 
 // Get the current widget and activate unless the args specify otherwise.
-    function getCurrent(
-      tracker: INotebookTracker,
-      shell: JupyterFrontEnd.IShell,
-      args: ReadonlyPartialJSONObject
-    ): NotebookPanel | null {
-      const widget = tracker.currentWidget;
-      const activate = args['activate'] !== false;
+function getCurrent(
+  tracker: INotebookTracker,
+  shell: JupyterFrontEnd.IShell,
+  args: ReadonlyPartialJSONObject
+): NotebookPanel | null {
+  const widget = tracker.currentWidget;
+  const activate = args['activate'] !== false;
 
-      if (activate && widget) {
-        shell.activateById(widget.id);
-      }
+  if (activate && widget) {
+    shell.activateById(widget.id);
+  }
 
-      return widget;
-    }
-
+  return widget;
+}
 
 /**
- * JUPYTEREVERYWHERE EXTENSION 
+ * JUPYTEREVERYWHERE EXTENSION
  */
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
-  requires: [INotebookTracker,ISettingRegistry, ICommandPalette, ITranslator, IDocumentManager],
+  requires: [INotebookTracker, ISettingRegistry, ICommandPalette, ITranslator, IDocumentManager],
   activate: (
-    app: JupyterFrontEnd, 
-    tracker:INotebookTracker,
+    app: JupyterFrontEnd,
+    tracker: INotebookTracker,
     translator: ITranslator,
     docManager: IDocumentManager,
-    settingRegistry: ISettingRegistry | null) => {
+    settingRegistry: ISettingRegistry | null
+  ) => {
     const sharingService = new SharingService(API_URL);
     console.log('JupyterLab extension jupytereverywhere is activated!');
 
     // Check if commands were disabled on system settings via schema/plugin.json
     app.restored.then(() => {
-      console.log('notebook:cut-cell Command Enabled:',app.commands.isEnabled('notebook:cut-cell'));
-      console.log('notebook:copy-cell Command Enabled:',app.commands.isEnabled('notebook:copy-cell'));
-      console.log('notebook:paste-cell-below Command Enabled:',app.commands.isEnabled('notebook:paste-cell-below'));
-      console.log('notebook:cut-cell Command Enabled:',app.commands.isEnabled('notebook:cut-cell'));
-      console.log('notebook:insert-cell-above Command Enabled:',app.commands.isEnabled('notebook:insert-cell-above'));
-      console.log('notebook:insert-cell-below Command Enabled:',app.commands.isEnabled('notebook:insert-cell-below'));
+      console.log(
+        'notebook:cut-cell Command Enabled:',
+        app.commands.isEnabled('notebook:cut-cell')
+      );
+      console.log(
+        'notebook:copy-cell Command Enabled:',
+        app.commands.isEnabled('notebook:copy-cell')
+      );
+      console.log(
+        'notebook:paste-cell-below Command Enabled:',
+        app.commands.isEnabled('notebook:paste-cell-below')
+      );
+      console.log(
+        'notebook:cut-cell Command Enabled:',
+        app.commands.isEnabled('notebook:cut-cell')
+      );
+      console.log(
+        'notebook:insert-cell-above Command Enabled:',
+        app.commands.isEnabled('notebook:insert-cell-above')
+      );
+      console.log(
+        'notebook:insert-cell-below Command Enabled:',
+        app.commands.isEnabled('notebook:insert-cell-below')
+      );
     });
-    
-    // Assign commands and shell properties to local variables 
+
+    // Assign commands and shell properties to local variables
     const { commands, shell } = app;
 
     /**
@@ -89,7 +100,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         inputElement.style.display = 'none';
 
         // Listen for file selection
-        inputElement.onchange = async (event) => {
+        inputElement.onchange = async event => {
           const file = (event.target as HTMLInputElement)?.files?.[0];
           if (file) {
             try {
@@ -99,9 +110,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
               // Create a new notebook and set the content
               const newModel = await docManager.newUntitled({
                 type: 'notebook',
-                path: '',
+                path: ''
               });
-              const newContext = await docManager.open(newModel.path) as NotebookPanel;
+              const newContext = (await docManager.open(newModel.path)) as NotebookPanel;
               if (newContext) {
                 newContext.context.model.fromString(content);
               }
@@ -116,7 +127,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         // Trigger file input click to open file dialog
         inputElement.click();
-      },
+      }
     });
 
     /**
@@ -161,7 +172,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
               });
             } else {
               // Proceed with uploading valid files
-              console.log('Valid files:', files.map(f => f.name));
+              console.log(
+                'Valid files:',
+                files.map(f => f.name)
+              );
               // Add your custom upload logic here
             }
           }
@@ -177,18 +191,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     /**
-    * Add custom save button command 
-    */
+     * Add custom save button command
+     */
     const linkCheckpoint = 'jupytereverywhere:save-link';
     let firstClick = true; // Track if this is the first click
 
     commands.addCommand(linkCheckpoint, {
       label: 'Create checkpoint and show link',
-      execute: async () => { // Declare the function as async
-        // Generate Shareable Link 
-        const shareableLink = 'https://example.com/notebook/sharelink'; 
-        const editpassword = 'randompassowrdhere'; 
-    
+      execute: async () => {
+        // Declare the function as async
+        // Generate Shareable Link
+        const shareableLink = 'https://example.com/notebook/sharelink';
+        const editpassword = 'randompassowrdhere';
+
         if (firstClick) {
           // Display the message for the first click
           const result = await showDialog({
@@ -230,17 +245,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }),
             buttons: [
               Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' }),
+              Dialog.cancelButton({ label: 'Close' })
             ]
           });
 
           // Handle the result
           if (result.button.label === 'Copy Link') {
-            navigator.clipboard.writeText(shareableLink)
+            navigator.clipboard
+              .writeText(shareableLink)
               .then(() => {
                 console.log('Link copied to clipboard');
               })
-              .catch((err) => {
+              .catch(err => {
                 console.error('Failed to copy link to clipboard:', err);
               });
           }
@@ -269,24 +285,25 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }),
             buttons: [
               Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' }),
+              Dialog.cancelButton({ label: 'Close' })
             ]
           });
-    
+
           // Handle the result
           if (result.button.label === 'Copy Link') {
-            navigator.clipboard.writeText(shareableLink)
+            navigator.clipboard
+              .writeText(shareableLink)
               .then(() => {
                 console.log('Link copied to clipboard');
               })
-              .catch((err) => {
+              .catch(err => {
                 console.error('Failed to copy link to clipboard:', err);
               });
           }
         }
       },
       isVisible: () => true
-    });    
+    });
 
     // Add the command to a custom toolbar
     const savebutton = new ToolbarButton({
@@ -300,20 +317,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
     // Adding the button to a notebook toolbar
     tracker.widgetAdded.connect((_, notebookPanel) => {
       if (notebookPanel) {
-        notebookPanel.toolbar.insertItem(1,'linkCheckpoint', savebutton);
+        notebookPanel.toolbar.insertItem(1, 'linkCheckpoint', savebutton);
       }
     });
-    
+
     /**
-    * Add empty markdown cell below 
-    */
+     * Add empty markdown cell below
+     */
     const insertMarkdownBelow = 'jupytereverywhere:insert-markdown-cell';
     commands.addCommand(insertMarkdownBelow, {
       label: 'Execute jupytereverywhere:insert-markdown-cell Command',
       caption: 'Insert Text Cell',
-      execute:  args => {
+      execute: args => {
         const current = getCurrent(tracker, shell, args);
-  
+
         if (current) {
           NotebookActions.insertBelow(current.content);
           return NotebookActions.changeCellType(current.content, 'markdown', translator);
@@ -321,10 +338,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-
     /**
-    * Add custom shareable link command 
-    */
+     * Add custom shareable link command
+     */
     const copyShareableLink = 'jupytereverywhere:copy-shareable-link';
     commands.addCommand(copyShareableLink, {
       label: 'shareable-link',
@@ -345,7 +361,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           // metadata when the notebook is retrieved)
           const response = await sharingService.share(notebookContent); // TODO: password
           const shareableLink = sharingService.makeRetrieveURL(response.notebook.id);
-    
+
           // Show a dialog with the shareable link and additional options
           const result = await showDialog({
             title: '',
@@ -370,16 +386,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
             }),
             buttons: [
               Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' }),
+              Dialog.cancelButton({ label: 'Close' })
             ]
           });
 
-        // Handle the result
-        if (result.button.label === 'Copy Link') {
-          navigator.clipboard.writeText(shareableLink.toString());
-          console.log('Link copied to clipboard');
-        }
-
+          // Handle the result
+          if (result.button.label === 'Copy Link') {
+            navigator.clipboard.writeText(shareableLink.toString());
+            console.log('Link copied to clipboard');
+          }
         } catch (error) {
           console.error('Error generating shareable link:', error);
           showErrorMessage('Error', 'Could not generate the shareable link.');
@@ -400,16 +415,15 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     // Attach the button to a notebook toolbar (as an example)
-    tracker.widgetAdded.connect((_, notebookPanel) =>{
+    tracker.widgetAdded.connect((_, notebookPanel) => {
       if (notebookPanel) {
         notebookPanel.toolbar.insertAfter('restart-and-run', 'copyShareableLink', button);
       }
-    })
-     
+    });
 
     /**
-    * Create notebook PDF command 
-    */
+     * Create notebook PDF command
+     */
     const pdfDownload = 'jupytereverywhere:download-as-pdf';
     commands.addCommand(pdfDownload, {
       label: 'Export Notebook to PDF',
@@ -425,7 +439,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         // Generate the URL for exporting the notebook using the specified format
         const url = PageConfig.getNBConvertURL({
           format: 'PDF',
-          download:true,
+          download: true,
           path: current.context.path
         });
 
@@ -440,17 +454,17 @@ const plugin: JupyterFrontEndPlugin<void> = {
           });
         }
 
-        // else the notebook is already saved, just open the export URL 
+        // else the notebook is already saved, just open the export URL
         return new Promise<void>(resolve => {
           window.open(url, '_blank', 'noopener');
           resolve(undefined);
         });
-      }, 
+      }
     });
 
     /**
-    * Add the dropdown download menu command
-    */
+     * Add the dropdown download menu command
+     */
     // TODO: Integrate the dropdown with Schema
     const dropdownMenuCommand = 'jupytereverywhere:dropdown-menu';
     commands.addCommand(dropdownMenuCommand, {
@@ -472,7 +486,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             <option value="pdf">as PDF</option>
           </select>
         `;
-        dropdown.node.querySelector('select')?.addEventListener('change', (event) => {
+        dropdown.node.querySelector('select')?.addEventListener('change', event => {
           const value = (event.target as HTMLSelectElement).value;
           if (value === 'ipynb') {
             console.log('Jupyter Notebook Downloaded');
@@ -484,12 +498,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
         });
 
         // Add the dropdown to the notebook panel's toolbar
-        notebookPanel.toolbar.insertBefore("spacer", 'dropdown-menu', dropdown);
+        notebookPanel.toolbar.insertBefore('spacer', 'dropdown-menu', dropdown);
       }
-    }); 
-
+    });
   }
 };
-
 
 export default plugin;

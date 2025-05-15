@@ -6,7 +6,7 @@
   "properties": {},
   "additionalProperties": false,
   "jupyter.lab.toolbars": {
-    "Notebook": [ 
+    "Notebook": [
       {
         "name": "save",
         "command": "",
@@ -17,14 +17,15 @@
         "name": "insert",
         "command": "notebook:insert-cell-below",
         "caption": "Insert Code Cell",
-        "rank":12,
+        "rank": 12,
         "label": "Code"
       },
-      { 
-        "name": "cut", 
-        "command": "notebook:cut-cell", 
-        "disabled": true },
-      { 
+      {
+        "name": "cut",
+        "command": "notebook:cut-cell",
+        "disabled": true
+      },
+      {
         "name": "copy",
         "command": "notebook:copy-cell",
         "disabled": true
@@ -33,10 +34,10 @@
         "name": "paste",
         "command": "notebook:paste-cell-below",
         "disabled": true
-      }, 
+      },
       {
         "name": "run",
-        "caption":"Run cell"
+        "caption": "Run cell"
       },
       {
         "name": "interrupt",
@@ -76,7 +77,7 @@
         "label": "Text"
       },
       {
-        "name":"upload",
+        "name": "upload",
         "command": "",
         "rank": 5,
         "icon": "ui-components:file-upload"
