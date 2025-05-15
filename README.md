@@ -1,8 +1,7 @@
 # jupytereverywhere
 
-[![Github Actions Status](/workflows/Build/badge.svg)](/actions/workflows/build.yml)
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh//main?urlpath=lab)
-
+[![Github Actions Status](https://github.com/JupyterEverywhere/jupyterlite-extension/workflows/Build/badge.svg)](https://github.com/JupyterEverywhere/jupyterlite-extension/actions/workflows/build.yml)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/JupyterEverywhere/jupyterlite-extension/main?urlpath=lab)
 
 A Jupyter extension for k12 education
 

@@ -1,5 +1,4 @@
-Modified BSD License
-====================
+# Modified BSD License
 
 _Copyright © 2024, CourseKata and Skew The Script_  
 _All rights reserved._
