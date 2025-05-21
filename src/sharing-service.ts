@@ -1,13 +1,6 @@
 import { INotebookContent } from '@jupyterlab/nbformat';
 
 /**
- * Debug logger (temporary, can be removed later)
- */
-function debugLog(...args: any[]): void {
-  console.log('[SharingService]', ...args);
-}
-
-/**
  * Token interface from the API
  */
 export interface IToken {
@@ -157,7 +150,6 @@ export class SharingService {
     if (!this.api_url.pathname.endsWith('/')) {
       this.api_url.pathname += '/';
     }
-    debugLog('Initialized with API URL:', this.api_url.toString());
   }
 
   /**
@@ -168,7 +160,6 @@ export class SharingService {
    */
   async authenticate(): Promise<IToken> {
     const endpoint = new URL('auth/issue', this.api_url);
-    debugLog('Authenticating with endpoint:', endpoint.toString());
 
     try {
       const response = await fetch(endpoint, {
@@ -178,22 +169,18 @@ export class SharingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        debugLog('Authentication failed:', response.status, response.statusText, errorText);
         throw new Error(`Authentication failed: ${response.statusText}`);
       }
 
       const responseData = await response.json();
-      debugLog('Authentication successful, received token');
 
       if (!validateToken(responseData)) {
-        debugLog('Invalid token response:', responseData);
         throw new Error('Invalid token response');
       }
 
       this._token = responseData;
       return responseData;
     } catch (error) {
-      debugLog('Authentication error:', error);
       throw error;
     }
   }
@@ -211,7 +198,6 @@ export class SharingService {
     }
 
     const endpoint = new URL('auth/refresh', this.api_url);
-    debugLog('Refreshing token with endpoint:', endpoint.toString());
 
     try {
       const response = await fetch(endpoint, {
@@ -222,22 +208,18 @@ export class SharingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        debugLog('Token refresh failed:', response.status, response.statusText, errorText);
         throw new Error(`Token refresh failed: ${response.statusText}`);
       }
 
       const refreshed = await response.json();
-      debugLog('Token refresh successful');
 
       if (!validateToken(refreshed)) {
-        debugLog('Invalid token response from refresh:', refreshed);
         throw new Error('Invalid token response from refresh');
       }
 
       this._token = refreshed;
       return refreshed;
     } catch (error) {
-      debugLog('Token refresh error:', error);
       throw error;
     }
   }
@@ -255,8 +237,6 @@ export class SharingService {
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
 
-    debugLog('Retrieving notebook with endpoint:', endpoint.toString());
-
     try {
       const token = await this.token;
       const response = await fetch(endpoint, {
@@ -265,21 +245,17 @@ export class SharingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        debugLog('Notebook retrieval failed:', response.status, response.statusText, errorText);
         throw new Error(`Failed to retrieve notebook: ${response.statusText}`);
       }
 
       const responseData = await response.json();
-      debugLog('Notebook retrieved successfully');
 
       if (!validateNotebookResponse(responseData)) {
-        debugLog('Invalid notebook response:', responseData);
         throw new Error('Invalid notebook response from API');
       }
 
       return responseData;
     } catch (error) {
-      debugLog('Notebook retrieval error:', error);
       throw error;
     }
   }
@@ -294,7 +270,6 @@ export class SharingService {
    */
   async share(notebook: INotebookContent, password?: string): Promise<IShareResponse> {
     if (!validateNotebookContent(notebook)) {
-      debugLog('Invalid notebook content provided for sharing');
       throw new Error('Invalid notebook content');
     }
 
@@ -304,8 +279,6 @@ export class SharingService {
     }
 
     const endpoint = new URL('notebooks', this.api_url);
-    debugLog('Sharing notebook with endpoint:', endpoint.toString());
-    debugLog('Request payload:', { ...requestData, notebook: '(notebook content omitted)' });
 
     try {
       const token = await this.token;
@@ -317,21 +290,17 @@ export class SharingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        debugLog('Sharing notebook failed:', response.status, response.statusText, errorText);
         throw new Error(`Sharing notebook failed: ${response.statusText}`);
       }
 
       const responseData = await response.json();
-      debugLog('Notebook shared successfully, response:', responseData);
 
       if (!validateShareResponse(responseData)) {
-        debugLog('Unexpected API response:', responseData);
         throw new Error(`Unexpected API response while sharing`);
       }
 
       return responseData;
     } catch (error) {
-      debugLog('Notebook sharing error:', error);
       throw error;
     }
   }
@@ -345,7 +314,6 @@ export class SharingService {
    */
   async update(id: string, notebook: INotebookContent, password?: string): Promise<IShareResponse> {
     if (!validateNotebookContent(notebook)) {
-      debugLog('Invalid notebook content provided for update');
       throw new Error('Invalid notebook content');
     }
 
@@ -355,8 +323,6 @@ export class SharingService {
     }
 
     const endpoint = new URL(`notebooks/${id}`, this.api_url);
-    debugLog('Updating notebook with endpoint:', endpoint.toString());
-    debugLog('Request payload:', { ...requestData, notebook: '(notebook content omitted)' });
 
     try {
       const token = await this.token;
@@ -368,21 +334,17 @@ export class SharingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        debugLog('Updating notebook failed:', response.status, response.statusText, errorText);
         throw new Error(`Updating notebook failed: ${response.statusText}`);
       }
 
       const responseData = await response.json();
-      debugLog('Notebook updated successfully, response:', responseData);
 
       if (!validateShareResponse(responseData)) {
-        debugLog('Unexpected API response:', responseData);
         throw new Error(`Unexpected API response while updating`);
       }
 
       return responseData;
     } catch (error) {
-      debugLog('Notebook update error:', error);
       throw error;
     }
   }
@@ -395,16 +357,13 @@ export class SharingService {
    */
   makeRetrieveURL(id: UUID | string): URL {
     if (!id) {
-      debugLog('Missing notebook ID for URL generation');
       throw new Error('Notebook ID is required');
     }
 
-    debugLog('Generating retrieve URL for ID:', id);
     const url = validateUUID(id)
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
 
-    debugLog('Generated URL:', url.toString());
     return url;
   }
 
