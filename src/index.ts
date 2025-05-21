@@ -210,6 +210,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                     resolve();
                   })
                   .catch(error => {
+                    console.error('Failed to save notebook:', error);
                     resolve();
                   });
               } else {
@@ -218,6 +219,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
               }
             })
             .catch(error => {
+              console.error('Failed while running notebook cells:', error);
               resolve();
             });
         });
@@ -364,6 +366,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                       if (result.button.label === 'Copy Link') {
                         void navigator.clipboard
                           .writeText(shareableLink)
+                          .catch(err => console.error('Failed to copy link:', err));
                       }
                       resolve();
                     })
