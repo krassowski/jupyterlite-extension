@@ -9,7 +9,7 @@
     ],
     "homepage": "",
     "bugs": {
-        "url": "/issues"
+        "url": "https://github.com/yourusername/jupytereverywhere/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
