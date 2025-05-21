@@ -6,7 +6,7 @@ import { Dialog, showDialog, ToolbarButton } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { linkIcon, downloadIcon } from '@jupyterlab/ui-components';
+import { linkIcon, downloadIcon, fileIcon } from '@jupyterlab/ui-components';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
 
@@ -456,14 +456,29 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     });
 
-    // Main download button
-    const downloadButton = new ToolbarButton({
-      label: 'Download',
+    /**
+     * Create a "Download IPyNB" button
+     */
+    const downloadIPyNBButton = new ToolbarButton({
+      label: 'Download IPyNB',
       icon: downloadIcon,
-      tooltip: 'Download this notebook',
+      tooltip: 'Download this notebook as .ipynb',
       onClick: () => {
-        debugLog('Download button clicked');
+        debugLog('Download IPyNB button clicked');
         void commands.execute(downloadNotebookCommand);
+      }
+    });
+
+    /**
+     * Create a "Download PDF" button
+     */
+    const downloadPDFButton = new ToolbarButton({
+      label: 'Download PDF',
+      icon: fileIcon,
+      tooltip: 'Download this notebook as PDF',
+      onClick: () => {
+        debugLog('Download PDF button clicked');
+        void commands.execute(downloadPDFCommand);
       }
     });
 
@@ -472,23 +487,39 @@ const plugin: JupyterFrontEndPlugin<void> = {
         debugLog('Adding buttons to notebook toolbar');
 
         // Look for the right position to insert the buttons (after the run buttons)
-        // Looks like the Download button vanishes here
-        let insertIndex = 5; // Default position
+        let insertIndex = 5;
         const toolbar = notebookPanel.toolbar;
 
-        // Add download-split button
-        // const downloadSplitButton = createDownloadSplitButton(notebookPanel);
+        Array.from(toolbar.names()).forEach((name, index) => {
+          if (name === 'run-all') {
+            insertIndex = index + 1;
+            debugLog('Found "run-all" button at position', index, 'will insert at', insertIndex);
+          }
+        });
+
+        // Add download-IPyNB button
         try {
-          toolbar.insertItem(insertIndex, 'downloadSplitButton', downloadButton);
-          debugLog('Download button inserted at position', insertIndex);
+          toolbar.insertItem(insertIndex, 'downloadIpynbButton', downloadIPyNBButton);
+          debugLog('Download IPyNB button inserted at position', insertIndex);
           insertIndex++;
         } catch (error) {
-          debugLog('Error inserting download button:', error);
-          toolbar.addItem('downloadSplitButton', downloadButton);
-          debugLog('Download button added at the end');
+          debugLog('Error inserting Download IPYNB button:', error);
+          toolbar.addItem('downloadIpynbButton', downloadIPyNBButton);
+          debugLog('Download IPyNB button added at the end');
         }
 
-        // Add share button
+        // Add download-PDF button
+        try {
+          toolbar.insertItem(insertIndex, 'downloadPdfButton', downloadPDFButton);
+          debugLog('Download PDF button inserted at position', insertIndex);
+          insertIndex++;
+        } catch (error) {
+          debugLog('Error inserting Download PDF button:', error);
+          toolbar.addItem('downloadPdfButton', downloadPDFButton);
+          debugLog('Download PDF button added at the end');
+        }
+
+        // Add the share button
         try {
           toolbar.insertItem(insertIndex, 'shareButton', shareButton);
           debugLog('Share button inserted at position', insertIndex);
