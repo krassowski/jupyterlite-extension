@@ -11,13 +11,6 @@ import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
 
 /**
- * Debug logger
- */
-function debugLog(...args: any[]): void {
-  console.log('[JupyterEverywhere]', ...args);
-}
-
-/**
  * Get the current notebook panel
  */
 function getCurrentNotebook(
@@ -161,12 +154,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
     translator: ITranslator,
     docManager: IDocumentManager
   ) => {
-    debugLog('Extension is being activated...');
-
     // Get API URL from configuration or use a default
     const apiUrl =
       PageConfig.getOption('sharing_service_api_url') || 'http://localhost:8080/api/v1';
-    debugLog('Using API URL:', apiUrl);
 
     const sharingService = new SharingService(apiUrl);
 
@@ -179,7 +169,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
     commands.addCommand(downloadNotebookCommand, {
       label: 'Download as Notebook (.ipynb)',
       execute: args => {
-        debugLog('Executing download as notebook command');
         // Execute the built-in download command
         return commands.execute('docmanager:download');
       }
@@ -192,10 +181,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     commands.addCommand(downloadPDFCommand, {
       label: 'Download as PDF',
       execute: args => {
-        debugLog('Executing download as PDF command');
         const current = getCurrentNotebook(tracker, shell, args);
         if (!current) {
-          debugLog('No current notebook found');
           return Promise.resolve();
         }
 
@@ -207,37 +194,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
           download: true,
           path: current.context.path
         });
-        debugLog('Generated PDF URL:', url);
 
         return new Promise<void>(resolve => {
           // Execute all cells first before the notebook is exported
           // as the PDF export won't have the latest cell outputs otherwise
-          debugLog('Running all cells before PDF export');
           void NotebookActions.runAll(current.content, current.context.sessionContext)
             .then(() => {
               // Save notebook if needed, then open the export URL
               const { context } = current;
               if (context.model.dirty && !context.model.readOnly) {
-                debugLog('Notebook is dirty, saving before PDF export');
                 void context
                   .save()
                   .then(() => {
-                    debugLog('Notebook saved, opening PDF export URL');
                     window.open(url, '_blank', 'noopener');
                     resolve();
                   })
                   .catch(error => {
-                    debugLog('Failed to save notebook:', error);
                     resolve();
                   });
               } else {
-                debugLog('Notebook is clean, opening PDF export URL');
                 window.open(url, '_blank', 'noopener');
                 resolve();
               }
             })
             .catch(error => {
-              debugLog('Failed to run all cells:', error);
               resolve();
             });
         });
@@ -251,23 +231,19 @@ const plugin: JupyterFrontEndPlugin<void> = {
     commands.addCommand(shareNotebookCommand, {
       label: 'Share Notebook',
       execute: () => {
-        debugLog('Executing share notebook command');
         // We'll return a Promise that resolves when sharing is complete
         return new Promise<void>(async resolve => {
           try {
             const notebookPanel = tracker.currentWidget;
             if (!notebookPanel) {
-              debugLog('No current notebook found');
               resolve();
               return;
             }
 
             // Save the notebook before we share it.
-            debugLog('Saving notebook before sharing');
             await notebookPanel.context.save();
 
             const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
-            debugLog('Notebook content for sharing:', notebookContent);
 
             // Check if notebook has already been shared; access metadata using notebook content
             let notebookId: string | undefined;
@@ -277,13 +253,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
               'sharedId' in notebookContent.metadata
             ) {
               notebookId = notebookContent.metadata.sharedId as string;
-              debugLog('Found existing notebook ID in metadata:', notebookId);
             }
 
             const isNewShare = !notebookId;
-            debugLog('Is new share:', isNewShare);
 
-            debugLog('Opening share dialog');
             const result = await showDialog({
               title: isNewShare ? 'Share Notebook' : 'Update Shared Notebook',
               body: new ShareDialog(),
@@ -293,13 +266,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
             if (result.button.accept) {
               const shareDialogData = result.value as ShareDialogData;
               const { notebookName, isViewOnly, password } = shareDialogData;
-              debugLog('Share dialog data:', { notebookName, isViewOnly, password: '***' });
 
               try {
                 // Show loading indicator
                 // TODO: this doesn't show up in the dialog properly, we could
                 // even remove it as loading doesn't take long at all
-                debugLog('Showing loading indicator');
                 const loadingIndicator = document.createElement('div');
                 loadingIndicator.textContent = 'Sharing notebook...';
                 loadingIndicator.style.position = 'fixed';
@@ -311,29 +282,23 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 loadingIndicator.style.zIndex = '1000';
                 document.body.appendChild(loadingIndicator);
 
-                debugLog('Authenticating with sharing service');
                 await sharingService.authenticate();
 
                 let shareResponse;
                 if (isNewShare) {
-                  debugLog('Sharing new notebook');
                   shareResponse = await sharingService.share(
                     notebookContent,
                     isViewOnly ? password : undefined
                   );
-                  debugLog('Share response:', shareResponse);
                 } else if (notebookId) {
-                  debugLog('Updating existing notebook with ID:', notebookId);
                   shareResponse = await sharingService.update(
                     notebookId,
                     notebookContent,
                     isViewOnly ? password : undefined
                   );
-                  debugLog('Update response:', shareResponse);
                 }
 
                 if (shareResponse && shareResponse.notebook) {
-                  debugLog('Storing metadata in notebook');
                   // We need to update the metadata in the notebookContent first
                   // to do this, and we need to ensure that the metadata object exists
                   if (!notebookContent.metadata) {
@@ -345,7 +310,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
                   notebookContent.metadata.sharedName = notebookName;
                   notebookContent.metadata.isPasswordProtected = isViewOnly;
 
-                  debugLog('Updating notebook model with new metadata');
                   notebookPanel.context.model.fromJSON(notebookContent);
                 }
 
@@ -353,14 +317,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 if (shareResponse && shareResponse.notebook) {
                   const id = shareResponse.notebook.readable_id || shareResponse.notebook.id;
                   shareableLink = sharingService.makeRetrieveURL(id).toString();
-                  debugLog('Generated shareable link:', shareableLink);
                 }
 
                 // Remove loading indicator
                 document.body.removeChild(loadingIndicator);
 
                 if (shareableLink) {
-                  debugLog('Showing success dialog with shareable link');
                   void showDialog({
                     title: isNewShare
                       ? 'Notebook Shared Successfully'
@@ -400,21 +362,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
                   })
                     .then(result => {
                       if (result.button.label === 'Copy Link') {
-                        debugLog('Copying link to clipboard');
                         void navigator.clipboard
                           .writeText(shareableLink)
-                          .then(() => debugLog('Link copied to clipboard'))
-                          .catch(err => debugLog('Failed to copy link:', err));
                       }
                       resolve();
                     })
                     .catch(() => resolve());
                 } else {
-                  debugLog('No shareable link generated');
                   resolve();
                 }
               } catch (error) {
-                debugLog('Error sharing notebook:', error);
                 void showDialog({
                   title: 'Error',
                   body: new Widget({
@@ -432,11 +389,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
                   .catch(() => resolve());
               }
             } else {
-              debugLog('Share dialog canceled');
               resolve();
             }
           } catch (error) {
-            debugLog('Error in share dialog:', error);
             resolve();
           }
         });
@@ -451,7 +406,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       icon: linkIcon,
       tooltip: 'Share this notebook',
       onClick: () => {
-        debugLog('Share button clicked');
         void commands.execute(shareNotebookCommand);
       }
     });
@@ -464,7 +418,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
       icon: downloadIcon,
       tooltip: 'Download this notebook as .ipynb',
       onClick: () => {
-        debugLog('Download IPyNB button clicked');
         void commands.execute(downloadNotebookCommand);
       }
     });
@@ -477,15 +430,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
       icon: fileIcon,
       tooltip: 'Download this notebook as PDF',
       onClick: () => {
-        debugLog('Download PDF button clicked');
         void commands.execute(downloadPDFCommand);
       }
     });
 
     tracker.widgetAdded.connect((_, notebookPanel) => {
       if (notebookPanel) {
-        debugLog('Adding buttons to notebook toolbar');
-
         // Look for the right position to insert the buttons (after the run buttons)
         let insertIndex = 5;
         const toolbar = notebookPanel.toolbar;
@@ -493,46 +443,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
         Array.from(toolbar.names()).forEach((name, index) => {
           if (name === 'run-all') {
             insertIndex = index + 1;
-            debugLog('Found "run-all" button at position', index, 'will insert at', insertIndex);
           }
         });
 
         // Add download-IPyNB button
         try {
           toolbar.insertItem(insertIndex, 'downloadIpynbButton', downloadIPyNBButton);
-          debugLog('Download IPyNB button inserted at position', insertIndex);
           insertIndex++;
         } catch (error) {
-          debugLog('Error inserting Download IPYNB button:', error);
           toolbar.addItem('downloadIpynbButton', downloadIPyNBButton);
-          debugLog('Download IPyNB button added at the end');
         }
 
         // Add download-PDF button
         try {
           toolbar.insertItem(insertIndex, 'downloadPdfButton', downloadPDFButton);
-          debugLog('Download PDF button inserted at position', insertIndex);
           insertIndex++;
         } catch (error) {
-          debugLog('Error inserting Download PDF button:', error);
           toolbar.addItem('downloadPdfButton', downloadPDFButton);
-          debugLog('Download PDF button added at the end');
         }
 
         // Add the share button
         try {
           toolbar.insertItem(insertIndex, 'shareButton', shareButton);
-          debugLog('Share button inserted at position', insertIndex);
         } catch (error) {
-          debugLog('Error inserting share button:', error);
           // Fallback: add at the end
           toolbar.addItem('shareButton', shareButton);
-          debugLog('Share button added at the end');
         }
       }
     });
-
-    debugLog('JupyterEverywhere extension ready for demo');
   }
 };
 
