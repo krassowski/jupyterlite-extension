@@ -5,12 +5,11 @@
     "keywords": [
         "jupyter",
         "jupyterlab",
-        "jupyterlab-extension",
-        "jupyterlite"
+        "jupyterlab-extension"
     ],
     "homepage": "",
     "bugs": {
-        "url": "https://github.com/yourusername/jupytereverywhere/issues"
+        "url": "/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -28,7 +27,7 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": "https://github.com/JupyterEverywhere/jupyterlite-extension.git"
+        "url": ".git"
     },
     "scripts": {
         "build": "jlpm build:lib && jlpm build:labextension:dev",
