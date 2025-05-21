@@ -6,11 +6,11 @@ import { Dialog, showDialog, ToolbarButton } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { linkIcon, downloadIcon, caretDownIcon } from '@jupyterlab/ui-components';
+import { linkIcon, downloadIcon } from '@jupyterlab/ui-components';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
-import { Menu } from '@lumino/widgets';
-import { CommandRegistry } from '@lumino/commands';
+// import { Menu } from '@lumino/widgets';
+// import { CommandRegistry } from '@lumino/commands';
 
 /**
  * Debug logger
@@ -444,52 +444,52 @@ ${
      * Create download split button
      */
     // TODO: where did this vanish? :/
-    const createDownloadSplitButton = (notebookPanel: NotebookPanel) => {
-      debugLog('Creating download split button');
-
-      // Main download button
-      const downloadButton = new ToolbarButton({
-        label: 'Download',
-        icon: downloadIcon,
-        tooltip: 'Download this notebook',
-        onClick: () => {
-          debugLog('Download button clicked');
-          void commands.execute(downloadNotebookCommand);
-        }
-      });
-
-      // Dropdown button handler
-      function handleDropdownClick() {
-        const menu = new Menu({ commands: commands as CommandRegistry });
-        menu.addItem({ command: downloadNotebookCommand });
-        menu.addItem({ command: downloadPDFCommand });
-      }
-
-      const dropdownButton = new ToolbarButton({
-        icon: caretDownIcon,
-        tooltip: 'Download options',
-        onClick: handleDropdownClick
-      });
-
-      downloadButton.node.style.borderRadius = '4px 0 0 4px';
-      downloadButton.node.style.marginRight = '0';
-      downloadButton.node.style.borderRight = 'none';
-
-      dropdownButton.node.style.borderRadius = '0 4px 4px 0';
-      dropdownButton.node.style.marginLeft = '0';
-      dropdownButton.node.style.width = '20px';
-      dropdownButton.node.style.minWidth = '20px';
-
-      const container = document.createElement('div');
-      container.style.display = 'flex';
-      container.style.alignItems = 'center';
-      container.style.marginRight = '4px';
-
-      container.appendChild(downloadButton.node);
-      container.appendChild(dropdownButton.node);
-
-      return new Widget({ node: container });
-    };
+    // function createDownloadSplitButton(notebookPanel: NotebookPanel): Widget {
+    //   debugLog('Creating download split button');
+    //
+    //   // Main download button
+    //   const downloadButton = new ToolbarButton({
+    //     label: 'Download',
+    //     icon: downloadIcon,
+    //     tooltip: 'Download this notebook',
+    //     onClick: () => {
+    //       debugLog('Download button clicked');
+    //       void commands.execute(downloadNotebookCommand);
+    //     }
+    //   });
+    //
+    //   // Dropdown button handler
+    //   function handleDropdownClick() {
+    //     const menu = new Menu({ commands: commands as CommandRegistry });
+    //     menu.addItem({ command: downloadNotebookCommand });
+    //     menu.addItem({ command: downloadPDFCommand });
+    //   }
+    //
+    //   const dropdownButton = new ToolbarButton({
+    //     icon: caretDownIcon,
+    //     tooltip: 'Download options',
+    //     onClick: handleDropdownClick
+    //   });
+    //
+    //   downloadButton.node.style.borderRadius = '4px 0 0 4px';
+    //   downloadButton.node.style.marginRight = '0';
+    //   downloadButton.node.style.borderRight = 'none';
+    //
+    //   dropdownButton.node.style.borderRadius = '0 4px 4px 0';
+    //   dropdownButton.node.style.marginLeft = '0';
+    //   dropdownButton.node.style.width = '20px';
+    //   dropdownButton.node.style.minWidth = '20px';
+    //
+    //   const container = document.createElement('div');
+    //   container.style.display = 'flex';
+    //   container.style.alignItems = 'center';
+    //   container.style.marginRight = '4px';
+    //
+    //   container.appendChild(downloadButton.node);
+    //   container.appendChild(dropdownButton.node);
+    //
+    //   return new Widget({ node: container });
+    // };
 
     /**
      * Create a "Share" button
@@ -504,6 +504,17 @@ ${
       }
     });
 
+    // Main download button
+    const downloadButton = new ToolbarButton({
+      label: 'Download',
+      icon: downloadIcon,
+      tooltip: 'Download this notebook',
+      onClick: () => {
+        debugLog('Download button clicked');
+        void commands.execute(downloadNotebookCommand);
+      }
+    });
+
     tracker.widgetAdded.connect((_, notebookPanel) => {
       if (notebookPanel) {
         debugLog('Adding buttons to notebook toolbar');
@@ -514,14 +525,14 @@ ${
         const toolbar = notebookPanel.toolbar;
 
         // Add download-split button
-        const downloadSplitButton = createDownloadSplitButton(notebookPanel);
+        // const downloadSplitButton = createDownloadSplitButton(notebookPanel);
         try {
-          toolbar.insertItem(insertIndex, 'downloadSplitButton', downloadSplitButton);
+          toolbar.insertItem(insertIndex, 'downloadSplitButton', downloadButton);
           debugLog('Download button inserted at position', insertIndex);
           insertIndex++;
         } catch (error) {
           debugLog('Error inserting download button:', error);
-          toolbar.addItem('downloadSplitButton', downloadSplitButton);
+          toolbar.addItem('downloadSplitButton', downloadButton);
           debugLog('Download button added at the end');
         }
 

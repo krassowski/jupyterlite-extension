@@ -87,7 +87,9 @@ export function validateNotebookContent(data: unknown): data is INotebookContent
 /**
  * Validates if the provided data conforms to the IShareResponse interface.
  *
- * @param data - The data to validate.
+ * Checks for notebook ID
+ *
+ * @param data - The response to validate.
  * @returns A boolean indicating whether the data conforms to the IShareResponse interface.
  */
 function validateShareResponse(data: unknown): data is IShareResponse {
