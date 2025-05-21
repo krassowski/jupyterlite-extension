@@ -9,8 +9,6 @@ import { IDocumentManager } from '@jupyterlab/docmanager';
 import { linkIcon, downloadIcon } from '@jupyterlab/ui-components';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
-// import { Menu } from '@lumino/widgets';
-// import { CommandRegistry } from '@lumino/commands';
 
 /**
  * Debug logger
@@ -40,7 +38,7 @@ function getCurrentNotebook(
 /**
  * Share dialog data interface.
  */
-interface IShareDialogData {
+interface ShareDialogData {
   notebookName: string;
   isViewOnly: boolean;
   password: string;
@@ -55,7 +53,7 @@ class ShareDialog extends Widget {
     this.node.appendChild(this.createNode());
   }
 
-  getValue(): IShareDialogData {
+  getValue(): ShareDialogData {
     const nameInput = this.node.querySelector('#notebook-name') as HTMLInputElement;
     const viewOnlyCheckbox = this.node.querySelector('#view-only') as HTMLInputElement;
     const passwordInput = this.node.querySelector('#password') as HTMLInputElement;
@@ -157,7 +155,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
   requires: [INotebookTracker, ITranslator, IDocumentManager],
-  activate: (app: JupyterFrontEnd, tracker: INotebookTracker) => {
+  activate: (
+    app: JupyterFrontEnd,
+    tracker: INotebookTracker,
+    translator: ITranslator,
+    docManager: IDocumentManager
+  ) => {
     debugLog('Extension is being activated...');
 
     // Get API URL from configuration or use a default
@@ -175,7 +178,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
     commands.addCommand(downloadNotebookCommand, {
       label: 'Download as Notebook (.ipynb)',
-      execute: () => {
+      execute: args => {
         debugLog('Executing download as notebook command');
         // Execute the built-in download command
         return commands.execute('docmanager:download');
@@ -250,7 +253,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       execute: () => {
         debugLog('Executing share notebook command');
         // We'll return a Promise that resolves when sharing is complete
-        return async (resolve: any) => {
+        return new Promise<void>(async resolve => {
           try {
             const notebookPanel = tracker.currentWidget;
             if (!notebookPanel) {
@@ -288,7 +291,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             });
 
             if (result.button.accept) {
-              const shareDialogData = result.value as IShareDialogData;
+              const shareDialogData = result.value as ShareDialogData;
               const { notebookName, isViewOnly, password } = shareDialogData;
               debugLog('Share dialog data:', { notebookName, isViewOnly, password: '***' });
 
@@ -366,27 +369,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
                       node: (() => {
                         const container = document.createElement('div');
                         container.innerHTML = `
-<p style="font-size: 1.2em; margin-bottom: 15px;">
-  ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'}
-  Use this link to access it:
-</p>
-<div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-  <a href="${shareableLink}"
-    target="_blank"
-    rel="noopener noreferrer"
-    style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
-    ${shareableLink}
-  </a>
-</div>
-${
-  isViewOnly
-    ? '<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>'
-    : ''
-}
-<p style="font-size: 0.9em; margin-top: 15px;">
-  <strong>Important:</strong> Save this link to access your notebook later.
-</p>
-`;
+                          <p style="font-size: 1.2em; margin-bottom: 15px;">
+                            ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'}
+                            Use this link to access it:
+                          </p>
+                          <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                            <a href="${shareableLink}"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
+                              ${shareableLink}
+                            </a>
+                          </div>
+                          ${
+                            isViewOnly
+                              ? `<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>`
+                              : ''
+                          }
+                          <p style="font-size: 0.9em; margin-top: 15px;">
+                            <strong>Important:</strong> Save this link to access your notebook later.
+                          </p>
+                        `;
                         return container;
                       })()
                     }),
@@ -418,8 +421,8 @@ ${
                     node: (() => {
                       const container = document.createElement('div');
                       container.innerHTML = `
-<p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-`;
+                        <p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+                      `;
                       return container;
                     })()
                   }),
@@ -436,60 +439,9 @@ ${
             debugLog('Error in share dialog:', error);
             resolve();
           }
-        };
+        });
       }
     });
-
-    /**
-     * Create download split button
-     */
-    // TODO: where did this vanish? :/
-    // function createDownloadSplitButton(notebookPanel: NotebookPanel): Widget {
-    //   debugLog('Creating download split button');
-    //
-    //   // Main download button
-    //   const downloadButton = new ToolbarButton({
-    //     label: 'Download',
-    //     icon: downloadIcon,
-    //     tooltip: 'Download this notebook',
-    //     onClick: () => {
-    //       debugLog('Download button clicked');
-    //       void commands.execute(downloadNotebookCommand);
-    //     }
-    //   });
-    //
-    //   // Dropdown button handler
-    //   function handleDropdownClick() {
-    //     const menu = new Menu({ commands: commands as CommandRegistry });
-    //     menu.addItem({ command: downloadNotebookCommand });
-    //     menu.addItem({ command: downloadPDFCommand });
-    //   }
-    //
-    //   const dropdownButton = new ToolbarButton({
-    //     icon: caretDownIcon,
-    //     tooltip: 'Download options',
-    //     onClick: handleDropdownClick
-    //   });
-    //
-    //   downloadButton.node.style.borderRadius = '4px 0 0 4px';
-    //   downloadButton.node.style.marginRight = '0';
-    //   downloadButton.node.style.borderRight = 'none';
-    //
-    //   dropdownButton.node.style.borderRadius = '0 4px 4px 0';
-    //   dropdownButton.node.style.marginLeft = '0';
-    //   dropdownButton.node.style.width = '20px';
-    //   dropdownButton.node.style.minWidth = '20px';
-    //
-    //   const container = document.createElement('div');
-    //   container.style.display = 'flex';
-    //   container.style.alignItems = 'center';
-    //   container.style.marginRight = '4px';
-    //
-    //   container.appendChild(downloadButton.node);
-    //   container.appendChild(dropdownButton.node);
-    //
-    //   return new Widget({ node: container });
-    // };
 
     /**
      * Create a "Share" button

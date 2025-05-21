@@ -5,11 +5,12 @@
     "keywords": [
         "jupyter",
         "jupyterlab",
-        "jupyterlab-extension"
+        "jupyterlab-extension",
+        "jupyterlite"
     ],
     "homepage": "",
     "bugs": {
-        "url": "/issues"
+        "url": "https://github.com/yourusername/jupytereverywhere/issues"
     },
     "license": "BSD-3-Clause",
     "author": {
@@ -27,10 +28,10 @@
     "style": "style/index.css",
     "repository": {
         "type": "git",
-        "url": ".git"
+        "url": "https://github.com/JupyterEverywhere/jupyterlite-extension.git"
     },
     "scripts": {
-        "build": "jlpm build:lib && jlpm build:labextension:dev && jlpm inject-api-url",
+        "build": "jlpm build:lib && jlpm build:labextension:dev",
         "build:prod": "jlpm clean && jlpm build:lib:prod && jlpm build:labextension",
         "build:labextension": "jupyter labextension build .",
         "build:labextension:dev": "jupyter labextension build --development True .",
@@ -54,8 +55,7 @@
         "test": "jest --coverage",
         "watch": "run-p watch:src watch:labextension",
         "watch:src": "tsc -w --sourceMap",
-        "watch:labextension": "jupyter labextension watch .",
-        "inject-api-url": "replace-in-file \"__API_URL__\" \"$API_URL\" lib/config.js"
+        "watch:labextension": "jupyter labextension watch ."
     },
     "dependencies": {
         "@jupyterlab/application": "^4.0.0",
@@ -89,7 +89,6 @@
         "jest": "^29.2.0",
         "npm-run-all": "^4.1.5",
         "prettier": "^3.0.0",
-        "replace-in-file": "^8.2.0",
         "rimraf": "^5.0.1",
         "source-map-loader": "^1.0.2",
         "style-loader": "^3.3.1",
