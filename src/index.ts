@@ -2,23 +2,30 @@ import { JupyterFrontEnd, JupyterFrontEndPlugin } from '@jupyterlab/application'
 import { INotebookTracker, NotebookActions, NotebookPanel } from '@jupyterlab/notebook';
 import { ReadonlyPartialJSONObject } from '@lumino/coreutils';
 import { ITranslator } from '@jupyterlab/translation';
-import { Dialog, showDialog, ToolbarButton, showErrorMessage } from '@jupyterlab/apputils';
+import { Dialog, showDialog, ToolbarButton } from '@jupyterlab/apputils';
 import { Widget } from '@lumino/widgets';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { IDocumentManager } from '@jupyterlab/docmanager';
-import { fileUploadIcon } from '@jupyterlab/ui-components'; // Import JupyterLab's built-in upload icon
+import { linkIcon, downloadIcon, caretDownIcon } from '@jupyterlab/ui-components';
 import { INotebookContent } from '@jupyterlab/nbformat';
 import { SharingService } from './sharing-service';
+import { Menu } from '@lumino/widgets';
+import { CommandRegistry } from '@lumino/commands';
 
 /**
- * HELP FUNCTIONS
+ * Debug logger
  */
+function debugLog(...args: any[]): void {
+  console.log('[JupyterEverywhere]', ...args);
+}
 
-// Get the current widget and activate unless the args specify otherwise.
-function getCurrent(
+/**
+ * Get the current notebook panel
+ */
+function getCurrentNotebook(
   tracker: INotebookTracker,
   shell: JupyterFrontEnd.IShell,
-  args: ReadonlyPartialJSONObject
+  args: ReadonlyPartialJSONObject = {}
 ): NotebookPanel | null {
   const widget = tracker.currentWidget;
   const activate = args['activate'] !== false;
@@ -28,6 +35,118 @@ function getCurrent(
   }
 
   return widget;
+}
+
+/**
+ * Share dialog data interface.
+ */
+interface ShareDialogData {
+  notebookName: string;
+  isViewOnly: boolean;
+  password: string;
+}
+
+/**
+ * Share dialog widget for notebook sharing preferences (name, view-only, and a password if applicable).
+ */
+class ShareDialog extends Widget {
+  constructor() {
+    super();
+    this.node.appendChild(this.createNode());
+  }
+
+  getValue(): ShareDialogData {
+    const nameInput = this.node.querySelector('#notebook-name') as HTMLInputElement;
+    const viewOnlyCheckbox = this.node.querySelector('#view-only') as HTMLInputElement;
+    const passwordInput = this.node.querySelector('#password') as HTMLInputElement;
+
+    return {
+      notebookName: nameInput.value,
+      isViewOnly: viewOnlyCheckbox.checked,
+      password: passwordInput.value
+    };
+  }
+
+  private createNode(): HTMLElement {
+    const node = document.createElement('div');
+
+    const nameLabel = document.createElement('label');
+    nameLabel.htmlFor = 'notebook-name';
+    nameLabel.textContent = 'Notebook Name:';
+
+    const nameInput = document.createElement('input');
+    nameInput.id = 'notebook-name';
+    nameInput.type = 'text';
+    nameInput.style.width = '100%';
+    nameInput.style.marginBottom = '15px';
+    nameInput.style.padding = '5px';
+    nameInput.required = true;
+
+    // For now, we can generate a default filename based on the
+    // date sharing the notebook.
+    const today = new Date();
+    const defaultName = `Notebook_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+    nameInput.value = defaultName;
+
+    const viewOnlyContainer = document.createElement('div');
+    viewOnlyContainer.style.marginBottom = '15px';
+
+    const viewOnlyCheckbox = document.createElement('input');
+    viewOnlyCheckbox.id = 'view-only';
+    viewOnlyCheckbox.type = 'checkbox';
+    viewOnlyCheckbox.style.marginRight = '5px';
+
+    const viewOnlyLabel = document.createElement('label');
+    viewOnlyLabel.htmlFor = 'view-only';
+    viewOnlyLabel.textContent = 'Share as view-only notebook (password-protected)';
+
+    viewOnlyContainer.appendChild(viewOnlyCheckbox);
+    viewOnlyContainer.appendChild(viewOnlyLabel);
+
+    // Password field
+    const passwordContainer = document.createElement('div');
+    passwordContainer.style.marginBottom = '15px';
+
+    const passwordLabel = document.createElement('label');
+    passwordLabel.htmlFor = 'password';
+    passwordLabel.textContent = 'Password:';
+
+    const passwordInput = document.createElement('input');
+    passwordInput.id = 'password';
+    passwordInput.type = 'text';
+    passwordInput.style.width = '100%';
+    passwordInput.style.padding = '5px';
+
+    // This should be retrieved from the API but doesn't due to CORS issues;
+    // generate a random password at this time.
+    const generatePassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let password = '';
+      for (let i = 0; i < 8; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+
+    passwordInput.value = generatePassword();
+    passwordInput.disabled = !viewOnlyCheckbox.checked;
+
+    // Toggle password field based on checkbox
+    // TODO: doesn't yet dim the password field?
+    viewOnlyCheckbox.addEventListener('change', () => {
+      passwordInput.disabled = !viewOnlyCheckbox.checked;
+    });
+
+    passwordContainer.appendChild(passwordLabel);
+    passwordContainer.appendChild(passwordInput);
+
+    node.appendChild(nameLabel);
+    node.appendChild(nameInput);
+    node.appendChild(viewOnlyContainer);
+    node.appendChild(passwordContainer);
+
+    return node;
+  }
 }
 
 /**
@@ -44,457 +163,402 @@ const plugin: JupyterFrontEndPlugin<void> = {
     translator: ITranslator,
     docManager: IDocumentManager
   ) => {
-    // Fallback to a valid URL for unit testing so that the plugin can start without configuration
-    const api_url = PageConfig.getOption('sharing_service_api_url') || 'http://localhost';
-    const sharingService = new SharingService(api_url);
-    console.log('JupyterLab extension jupytereverywhere is activated!');
+    debugLog('Extension is being activated...');
 
-    // Check if commands were disabled on system settings via schema/plugin.json
-    app.restored.then(() => {
-      console.log(
-        'notebook:cut-cell Command Enabled:',
-        app.commands.isEnabled('notebook:cut-cell')
-      );
-      console.log(
-        'notebook:copy-cell Command Enabled:',
-        app.commands.isEnabled('notebook:copy-cell')
-      );
-      console.log(
-        'notebook:paste-cell-below Command Enabled:',
-        app.commands.isEnabled('notebook:paste-cell-below')
-      );
-      console.log(
-        'notebook:cut-cell Command Enabled:',
-        app.commands.isEnabled('notebook:cut-cell')
-      );
-      console.log(
-        'notebook:insert-cell-above Command Enabled:',
-        app.commands.isEnabled('notebook:insert-cell-above')
-      );
-      console.log(
-        'notebook:insert-cell-below Command Enabled:',
-        app.commands.isEnabled('notebook:insert-cell-below')
-      );
-    });
+    // Get API URL from configuration or use a default
+    const apiUrl =
+      PageConfig.getOption('sharing_service_api_url') || 'http://localhost:8080/api/v1';
+    debugLog('Using API URL:', apiUrl);
 
-    // Assign commands and shell properties to local variables
+    const sharingService = new SharingService(apiUrl);
+
     const { commands, shell } = app;
 
     /**
-     * Add custom upload button
+     * 1. A "Download as IPyNB" command.
      */
-    const uploadNotebookCommand = 'jupytereverywhere:upload-notebook';
-    commands.addCommand(uploadNotebookCommand, {
-      label: 'Upload Notebook',
-      execute: async () => {
-        const inputElement = document.createElement('input');
-        inputElement.type = 'file';
-        inputElement.accept = '.ipynb'; // Accept only Jupyter Notebook files
-        inputElement.style.display = 'none';
-
-        // Listen for file selection
-        inputElement.onchange = async event => {
-          const file = (event.target as HTMLInputElement)?.files?.[0];
-          if (file) {
-            try {
-              // Read the notebook file content
-              const content = await file.text();
-
-              // Create a new notebook and set the content
-              const newModel = await docManager.newUntitled({
-                type: 'notebook',
-                path: ''
-              });
-              const newContext = (await docManager.open(newModel.path)) as NotebookPanel;
-              if (newContext) {
-                newContext.context.model.fromString(content);
-              }
-
-              console.log('Notebook uploaded successfully');
-            } catch (error) {
-              console.error('Failed to upload notebook:', error);
-              showErrorMessage('Upload Error', 'Failed to upload notebook.');
-            }
-          }
-        };
-
-        // Trigger file input click to open file dialog
-        inputElement.click();
-      }
-    });
-
-    /**
-     * Add the upload button to the toolbar
-     */
-    // Allowed file extensions
-    const allowedExtensions = ['.ipynb', '.csv', '.tsv', '.json', '.png', '.jpg', '.jpeg'];
-
-    // Function to validate file type
-    function validateFile(file: File): boolean {
-      const extension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
-      return allowedExtensions.includes(extension);
-    }
-
-    // Create the upload button
-    const uploadButton = new ToolbarButton({
-      label: 'Upload',
-      icon: fileUploadIcon,
-      tooltip: 'Upload a notebook, dataset, or image',
-      onClick: async () => {
-        // Create a hidden file input element
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = allowedExtensions.join(','); // Limit to specific file types
-        input.multiple = true; // Allow multiple files if needed
-
-        // Trigger the file picker dialog
-        input.click();
-
-        // Handle file selection
-        input.onchange = async () => {
-          if (input.files) {
-            const files = Array.from(input.files);
-            const invalidFiles = files.filter(file => !validateFile(file));
-
-            if (invalidFiles.length > 0) {
-              // Show a warning dialog for invalid files
-              await showDialog({
-                title: 'Invalid File Type',
-                body: `The following files are not allowed: ${invalidFiles.map(f => f.name).join(', ')}`,
-                buttons: [Dialog.okButton({ label: 'OK' })]
-              });
-            } else {
-              // Proceed with uploading valid files
-              console.log(
-                'Valid files:',
-                files.map(f => f.name)
-              );
-              // Add your custom upload logic here
-            }
-          }
-        };
-      }
-    });
-
-    // Add the upload button to the toolbar as the first item on the left
-    tracker.widgetAdded.connect((_, notebookPanel) => {
-      if (notebookPanel) {
-        notebookPanel.toolbar.insertItem(0, 'uploadButton', uploadButton); // Insert at position 0
-      }
-    });
-
-    /**
-     * Add custom save button command
-     */
-    const linkCheckpoint = 'jupytereverywhere:save-link';
-    let firstClick = true; // Track if this is the first click
-
-    commands.addCommand(linkCheckpoint, {
-      label: 'Create checkpoint and show link',
-      execute: async () => {
-        // Declare the function as async
-        // Generate Shareable Link
-        const shareableLink = 'https://example.com/notebook/sharelink';
-        const editpassword = 'randompassowrdhere';
-
-        if (firstClick) {
-          // Display the message for the first click
-          const result = await showDialog({
-            title: '',
-            body: new Widget({
-              node: (() => {
-                const container = document.createElement('div');
-                container.innerHTML = `
-                  <p style="font-size: 1.2em; margin-bottom: 10px;">
-                    Save the following information to access your notebook in a future session.
-                    Here is the shareable link to your notebook:
-                  </p>
-                  <p>
-                    <div style="text-align: center; margin: 10px 0;">
-                      <a href="${shareableLink}" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style="font-size: 1.1em; color: #007bff; text-decoration: underline;">
-                        ${shareableLink}
-                      </a>
-                    </div>
-                  </p>
-                  <p style="font-size: 1.2em; margin-bottom: 10px;">
-                    Here's the code required to edit the original notebook. Make sure to save this code as it will not appear again:
-                  </p>
-                  <p>
-                    <div style="text-align: center; margin: 10px 0;">
-                      <a
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style="font-size: 1.1em; color: #007bff; text-decoration: underline;">
-                        ${editpassword}
-                      </a>
-                    </div>
-                  </p>
-                `;
-                return container;
-              })()
-            }),
-            buttons: [
-              Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' })
-            ]
-          });
-
-          // Handle the result
-          if (result.button.label === 'Copy Link') {
-            navigator.clipboard
-              .writeText(shareableLink)
-              .then(() => {
-                console.log('Link copied to clipboard');
-              })
-              .catch(err => {
-                console.error('Failed to copy link to clipboard:', err);
-              });
-          }
-          firstClick = false; // Update the flag
-        } else {
-          const result = await showDialog({
-            title: 'Progress Saved',
-            body: new Widget({
-              node: (() => {
-                const container = document.createElement('div');
-                container.innerHTML = `
-                  <p>Your work has successfully saved. Make sure to save your link to access your notebook in the future:</p>
-                  <p>
-                    <div style="text-align: center; margin: 10px 0;">
-                      <a href="${shareableLink}" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style="font-size: 1.1em; color: #007bff; text-decoration: underline;">
-                        ${shareableLink}
-                      </a>
-                    </div>
-                  </p>
-                `;
-                return container;
-              })()
-            }),
-            buttons: [
-              Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' })
-            ]
-          });
-
-          // Handle the result
-          if (result.button.label === 'Copy Link') {
-            navigator.clipboard
-              .writeText(shareableLink)
-              .then(() => {
-                console.log('Link copied to clipboard');
-              })
-              .catch(err => {
-                console.error('Failed to copy link to clipboard:', err);
-              });
-          }
-        }
-      },
-      isVisible: () => true
-    });
-
-    // Add the command to a custom toolbar
-    const savebutton = new ToolbarButton({
-      className: 'jp-LinkCheckpointButton',
-      iconClass: 'jp-MaterialIcon jp-SaveIcon',
-      tooltip: 'Create checkpoint and show link',
-      onClick: () => {
-        commands.execute(linkCheckpoint);
-      }
-    });
-    // Adding the button to a notebook toolbar
-    tracker.widgetAdded.connect((_, notebookPanel) => {
-      if (notebookPanel) {
-        notebookPanel.toolbar.insertItem(1, 'linkCheckpoint', savebutton);
-      }
-    });
-
-    /**
-     * Add empty markdown cell below
-     */
-    const insertMarkdownBelow = 'jupytereverywhere:insert-markdown-cell';
-    commands.addCommand(insertMarkdownBelow, {
-      label: 'Execute jupytereverywhere:insert-markdown-cell Command',
-      caption: 'Insert Text Cell',
+    const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
+    commands.addCommand(downloadNotebookCommand, {
+      label: 'Download as Notebook (.ipynb)',
       execute: args => {
-        const current = getCurrent(tracker, shell, args);
-
-        if (current) {
-          NotebookActions.insertBelow(current.content);
-          return NotebookActions.changeCellType(current.content, 'markdown', translator);
-        }
+        debugLog('Executing download as notebook command');
+        // Execute the built-in download command
+        return commands.execute('docmanager:download');
       }
     });
 
     /**
-     * Add custom shareable link command
+     * 2. A "Download as PDF" command.
      */
-    const copyShareableLink = 'jupytereverywhere:copy-shareable-link';
-    commands.addCommand(copyShareableLink, {
-      label: 'shareable-link',
-      execute: async () => {
-        try {
-          // ensure we are in a notebook panel
-          const notebookPanel = tracker.currentWidget;
-          if (!notebookPanel) {
-            throw new Error('No active notebook to share.');
-          }
-
-          // share the notebook
-          await notebookPanel.context.save();
-          const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
-          // TODO: check if the notebook has already been shared, if so, update instead of creating
-          // a new notebook. we could do this by setting the shared ID in the notebook metadata
-          // after the first share (and also by ensuring that the ID is included in that same
-          // metadata when the notebook is retrieved)
-          const response = await sharingService.share(notebookContent); // TODO: password
-          const shareableLink = sharingService.makeRetrieveURL(response.notebook.id);
-
-          // Show a dialog with the shareable link and additional options
-          const result = await showDialog({
-            title: '',
-            body: new Widget({
-              node: (() => {
-                const container = document.createElement('div');
-                container.innerHTML = `
-                  <p>Here is the shareable link to your notebook</p>
-                  <p>
-                    <div style="text-align: center; margin: 10px 0;">
-                      <a href="${shareableLink}" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style="font-size: 1.1em; color: #007bff; text-decoration: underline;">
-                        ${shareableLink}
-                      </a>
-                    </div>
-                  </p>
-                `;
-                return container;
-              })()
-            }),
-            buttons: [
-              Dialog.okButton({ label: 'Copy Link' }),
-              Dialog.cancelButton({ label: 'Close' })
-            ]
-          });
-
-          // Handle the result
-          if (result.button.label === 'Copy Link') {
-            navigator.clipboard.writeText(shareableLink.toString());
-            console.log('Link copied to clipboard');
-          }
-        } catch (error) {
-          console.error('Error generating shareable link:', error);
-          showErrorMessage('Error', 'Could not generate the shareable link.');
-        }
-      },
-      isVisible: () => true
-    });
-
-    // Add the command to a custom toolbar
-    const button = new ToolbarButton({
-      label: 'Share',
-      className: 'jp-ShareableLinkButton',
-      iconClass: 'jp-MaterialIcon jp-LinkIcon',
-      tooltip: 'Copy shareable link',
-      onClick: () => {
-        commands.execute(copyShareableLink);
-      }
-    });
-
-    // Attach the button to a notebook toolbar (as an example)
-    tracker.widgetAdded.connect((_, notebookPanel) => {
-      if (notebookPanel) {
-        notebookPanel.toolbar.insertAfter('restart-and-run', 'copyShareableLink', button);
-      }
-    });
-
-    /**
-     * Create notebook PDF command
-     */
-    const pdfDownload = 'jupytereverywhere:download-as-pdf';
-    commands.addCommand(pdfDownload, {
-      label: 'Export Notebook to PDF',
+    const downloadPDFCommand = 'jupytereverywhere:download-pdf';
+    commands.addCommand(downloadPDFCommand, {
+      label: 'Download as PDF',
       execute: args => {
-        // Get the current active notebook using helper function
-        const current = getCurrent(tracker, shell, args);
-
-        // If there is no active notebook, do nothing
+        debugLog('Executing download as PDF command');
+        const current = getCurrentNotebook(tracker, shell, args);
         if (!current) {
-          return;
+          debugLog('No current notebook found');
+          return Promise.resolve();
         }
 
-        // Generate the URL for exporting the notebook using the specified format
+        // Generate the URL for exporting as PDF
+        // TODO: make this not open a new tab but rather download the file directly
+        // Probably a target="_blank" not working issue?
         const url = PageConfig.getNBConvertURL({
-          format: 'PDF',
+          format: 'pdf',
           download: true,
           path: current.context.path
         });
+        debugLog('Generated PDF URL:', url);
 
-        // Destructure the notebook context for easier access
-        const { context } = current;
-
-        // If the notebook has unsaved changes and is not read-only:
-        if (context.model.dirty && !context.model.readOnly) {
-          // Save the notebook first, then open the export URL
-          return context.save().then(() => {
-            window.open(url, '_blank', 'noopener');
-          });
-        }
-
-        // else the notebook is already saved, just open the export URL
         return new Promise<void>(resolve => {
-          window.open(url, '_blank', 'noopener');
-          resolve(undefined);
+          // Execute all cells first before the notebook is exported
+          // as the PDF export won't have the latest cell outputs otherwise
+          debugLog('Running all cells before PDF export');
+          void NotebookActions.runAll(current.content, current.context.sessionContext)
+            .then(() => {
+              // Save notebook if needed, then open the export URL
+              const { context } = current;
+              if (context.model.dirty && !context.model.readOnly) {
+                debugLog('Notebook is dirty, saving before PDF export');
+                void context
+                  .save()
+                  .then(() => {
+                    debugLog('Notebook saved, opening PDF export URL');
+                    window.open(url, '_blank', 'noopener');
+                    resolve();
+                  })
+                  .catch(error => {
+                    debugLog('Failed to save notebook:', error);
+                    resolve();
+                  });
+              } else {
+                debugLog('Notebook is clean, opening PDF export URL');
+                window.open(url, '_blank', 'noopener');
+                resolve();
+              }
+            })
+            .catch(error => {
+              debugLog('Failed to run all cells:', error);
+              resolve();
+            });
         });
       }
     });
 
     /**
-     * Add the dropdown download menu command
+     * Add custom Share notebook command
      */
-    // TODO: Integrate the dropdown with Schema
-    const dropdownMenuCommand = 'jupytereverywhere:dropdown-menu';
-    commands.addCommand(dropdownMenuCommand, {
-      label: 'Dropdown Menu',
+    const shareNotebookCommand = 'jupytereverywhere:share-notebook';
+    commands.addCommand(shareNotebookCommand, {
+      label: 'Share Notebook',
       execute: () => {
-        // This can be empty since the toolbar button will render the widget
-      },
-      isVisible: () => true
-    });
+        debugLog('Executing share notebook command');
+        // We'll return a Promise that resolves when sharing is complete
+        return new Promise<void>(async resolve => {
+          try {
+            const notebookPanel = tracker.currentWidget;
+            if (!notebookPanel) {
+              debugLog('No current notebook found');
+              resolve();
+              return;
+            }
 
-    // Add the dropdown menu to the toolbar dynamically
-    tracker.widgetAdded.connect((_, notebookPanel) => {
-      if (notebookPanel && !notebookPanel.isDisposed) {
-        const dropdown = new Widget();
-        dropdown.node.innerHTML = `
-          <select class="jp-Dropdown">
-            <option value="">Download</option>
-            <option value="ipynb">as Python Notebook</option>
-            <option value="pdf">as PDF</option>
-          </select>
-        `;
-        dropdown.node.querySelector('select')?.addEventListener('change', event => {
-          const value = (event.target as HTMLSelectElement).value;
-          if (value === 'ipynb') {
-            console.log('Jupyter Notebook Downloaded');
-            commands.execute('docmanager:download');
-          } else if (value === 'pdf') {
-            console.log('Jupyter Notebook PDF Downloaded');
-            commands.execute('jupytereverywhere:download-as-pdf');
+            // Save the notebook before we share it.
+            debugLog('Saving notebook before sharing');
+            await notebookPanel.context.save();
+
+            const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
+            debugLog('Notebook content for sharing:', notebookContent);
+
+            // Check if notebook has already been shared; access metadata using notebook content
+            let notebookId: string | undefined;
+            if (
+              notebookContent.metadata &&
+              typeof notebookContent.metadata === 'object' &&
+              'sharedId' in notebookContent.metadata
+            ) {
+              notebookId = notebookContent.metadata.sharedId as string;
+              debugLog('Found existing notebook ID in metadata:', notebookId);
+            }
+
+            const isNewShare = !notebookId;
+            debugLog('Is new share:', isNewShare);
+
+            debugLog('Opening share dialog');
+            const result = await showDialog({
+              title: isNewShare ? 'Share Notebook' : 'Update Shared Notebook',
+              body: new ShareDialog(),
+              buttons: [Dialog.cancelButton(), Dialog.okButton()]
+            });
+
+            if (result.button.accept) {
+              const shareDialogData = result.value as ShareDialogData;
+              const { notebookName, isViewOnly, password } = shareDialogData;
+              debugLog('Share dialog data:', { notebookName, isViewOnly, password: '***' });
+
+              try {
+                // Show loading indicator
+                // TODO: this doesn't show up in the dialog properly, we could
+                // even remove it as loading doesn't take long at all
+                debugLog('Showing loading indicator');
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.textContent = 'Sharing notebook...';
+                loadingIndicator.style.position = 'fixed';
+                loadingIndicator.style.bottom = '20px';
+                loadingIndicator.style.right = '20px';
+                loadingIndicator.style.padding = '10px';
+                loadingIndicator.style.backgroundColor = '#f0f0f0';
+                loadingIndicator.style.borderRadius = '5px';
+                loadingIndicator.style.zIndex = '1000';
+                document.body.appendChild(loadingIndicator);
+
+                debugLog('Authenticating with sharing service');
+                await sharingService.authenticate();
+
+                let shareResponse;
+                if (isNewShare) {
+                  debugLog('Sharing new notebook');
+                  shareResponse = await sharingService.share(
+                    notebookContent,
+                    isViewOnly ? password : undefined
+                  );
+                  debugLog('Share response:', shareResponse);
+                } else if (notebookId) {
+                  debugLog('Updating existing notebook with ID:', notebookId);
+                  shareResponse = await sharingService.update(
+                    notebookId,
+                    notebookContent,
+                    isViewOnly ? password : undefined
+                  );
+                  debugLog('Update response:', shareResponse);
+                }
+
+                if (shareResponse && shareResponse.notebook) {
+                  debugLog('Storing metadata in notebook');
+                  // We need to update the metadata in the notebookContent first
+                  // to do this, and we need to ensure that the metadata object exists
+                  if (!notebookContent.metadata) {
+                    notebookContent.metadata = {};
+                  }
+
+                  notebookContent.metadata.sharedId = shareResponse.notebook.id;
+                  notebookContent.metadata.readableId = shareResponse.notebook.readable_id;
+                  notebookContent.metadata.sharedName = notebookName;
+                  notebookContent.metadata.isPasswordProtected = isViewOnly;
+
+                  debugLog('Updating notebook model with new metadata');
+                  notebookPanel.context.model.fromJSON(notebookContent);
+                }
+
+                let shareableLink = '';
+                if (shareResponse && shareResponse.notebook) {
+                  const id = shareResponse.notebook.readable_id || shareResponse.notebook.id;
+                  shareableLink = sharingService.makeRetrieveURL(id).toString();
+                  debugLog('Generated shareable link:', shareableLink);
+                }
+
+                // Remove loading indicator
+                document.body.removeChild(loadingIndicator);
+
+                if (shareableLink) {
+                  debugLog('Showing success dialog with shareable link');
+                  void showDialog({
+                    title: isNewShare
+                      ? 'Notebook Shared Successfully'
+                      : 'Notebook Updated Successfully',
+                    body: new Widget({
+                      node: (() => {
+                        const container = document.createElement('div');
+                        container.innerHTML = `
+                          <p style="font-size: 1.2em; margin-bottom: 15px;">
+                            ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'} 
+                            Use this link to access it:
+                          </p>
+                          <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                            <a href="${shareableLink}" 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
+                              ${shareableLink}
+                            </a>
+                          </div>
+                          ${
+                            isViewOnly
+                              ? `<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>`
+                              : ''
+                          }
+                          <p style="font-size: 0.9em; margin-top: 15px;">
+                            <strong>Important:</strong> Save this link to access your notebook later.
+                          </p>
+                        `;
+                        return container;
+                      })()
+                    }),
+                    buttons: [
+                      Dialog.okButton({ label: 'Copy Link' }),
+                      Dialog.cancelButton({ label: 'Close' })
+                    ]
+                  })
+                    .then(result => {
+                      if (result.button.label === 'Copy Link') {
+                        debugLog('Copying link to clipboard');
+                        void navigator.clipboard
+                          .writeText(shareableLink)
+                          .then(() => debugLog('Link copied to clipboard'))
+                          .catch(err => debugLog('Failed to copy link:', err));
+                      }
+                      resolve();
+                    })
+                    .catch(() => resolve());
+                } else {
+                  debugLog('No shareable link generated');
+                  resolve();
+                }
+              } catch (error) {
+                debugLog('Error sharing notebook:', error);
+                void showDialog({
+                  title: 'Error',
+                  body: new Widget({
+                    node: (() => {
+                      const container = document.createElement('div');
+                      container.innerHTML = `
+                        <p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+                      `;
+                      return container;
+                    })()
+                  }),
+                  buttons: [Dialog.okButton()]
+                })
+                  .then(() => resolve())
+                  .catch(() => resolve());
+              }
+            } else {
+              debugLog('Share dialog canceled');
+              resolve();
+            }
+          } catch (error) {
+            debugLog('Error in share dialog:', error);
+            resolve();
           }
         });
-
-        // Add the dropdown to the notebook panel's toolbar
-        notebookPanel.toolbar.insertBefore('spacer', 'dropdown-menu', dropdown);
       }
     });
+
+    /**
+     * Create download split button
+     */
+    // TODO: where did this vanish? :/
+    const createDownloadSplitButton = (notebookPanel: NotebookPanel) => {
+      debugLog('Creating download split button');
+
+      // Main download button
+      const downloadButton = new ToolbarButton({
+        label: 'Download',
+        icon: downloadIcon,
+        tooltip: 'Download this notebook',
+        onClick: () => {
+          debugLog('Download button clicked');
+          void commands.execute(downloadNotebookCommand);
+        }
+      });
+
+      // TypeScript requires separate interface for the event handler
+      // to avoid type errors (for some unexplained reason this is how it works)
+      interface ButtonClickHandler {
+        (evt: MouseEvent): void;
+      }
+
+      // Dropdown button handler
+      const handleDropdownClick: ButtonClickHandler = event => {
+        debugLog('Download dropdown clicked');
+        event.stopPropagation();
+        event.preventDefault();
+
+        const menu = new Menu({ commands: commands as CommandRegistry });
+        menu.addItem({ command: downloadNotebookCommand });
+        menu.addItem({ command: downloadPDFCommand });
+        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+        menu.open(rect.left, rect.bottom);
+      };
+
+      const dropdownButton = new ToolbarButton({
+        icon: caretDownIcon,
+        tooltip: 'Download options',
+        // @ts-ignore - ToolbarButton's onClick typing is too restrictive
+        onClick: handleDropdownClick
+      });
+
+      downloadButton.node.style.borderRadius = '4px 0 0 4px';
+      downloadButton.node.style.marginRight = '0';
+      downloadButton.node.style.borderRight = 'none';
+
+      dropdownButton.node.style.borderRadius = '0 4px 4px 0';
+      dropdownButton.node.style.marginLeft = '0';
+      dropdownButton.node.style.width = '20px';
+      dropdownButton.node.style.minWidth = '20px';
+
+      const container = document.createElement('div');
+      container.style.display = 'flex';
+      container.style.alignItems = 'center';
+      container.style.marginRight = '4px';
+
+      container.appendChild(downloadButton.node);
+      container.appendChild(dropdownButton.node);
+
+      return new Widget({ node: container });
+    };
+
+    /**
+     * Create a "Share" button
+     */
+    const shareButton = new ToolbarButton({
+      label: 'Share',
+      icon: linkIcon,
+      tooltip: 'Share this notebook',
+      onClick: () => {
+        debugLog('Share button clicked');
+        void commands.execute(shareNotebookCommand);
+      }
+    });
+
+    tracker.widgetAdded.connect((_, notebookPanel) => {
+      if (notebookPanel) {
+        debugLog('Adding buttons to notebook toolbar');
+
+        // Look for the right position to insert the buttons (after the run buttons)
+        // Looks like the Download button vanishes here
+        let insertIndex = 5; // Default position
+        const toolbar = notebookPanel.toolbar;
+
+        // Add download-split button
+        const downloadSplitButton = createDownloadSplitButton(notebookPanel);
+        try {
+          toolbar.insertItem(insertIndex, 'downloadSplitButton', downloadSplitButton);
+          debugLog('Download button inserted at position', insertIndex);
+          insertIndex++;
+        } catch (error) {
+          debugLog('Error inserting download button:', error);
+          toolbar.addItem('downloadSplitButton', downloadSplitButton);
+          debugLog('Download button added at the end');
+        }
+
+        // Add share button
+        try {
+          toolbar.insertItem(insertIndex, 'shareButton', shareButton);
+          debugLog('Share button inserted at position', insertIndex);
+        } catch (error) {
+          debugLog('Error inserting share button:', error);
+          // Fallback: add at the end
+          toolbar.addItem('shareButton', shareButton);
+          debugLog('Share button added at the end');
+        }
+      }
+    });
+
+    debugLog('JupyterEverywhere extension ready for demo');
   }
 };
 
 export default plugin;
+
