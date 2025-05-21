@@ -40,7 +40,7 @@ function getCurrentNotebook(
 /**
  * Share dialog data interface.
  */
-interface ShareDialogData {
+interface IShareDialogData {
   notebookName: string;
   isViewOnly: boolean;
   password: string;
@@ -55,7 +55,7 @@ class ShareDialog extends Widget {
     this.node.appendChild(this.createNode());
   }
 
-  getValue(): ShareDialogData {
+  getValue(): IShareDialogData {
     const nameInput = this.node.querySelector('#notebook-name') as HTMLInputElement;
     const viewOnlyCheckbox = this.node.querySelector('#view-only') as HTMLInputElement;
     const passwordInput = this.node.querySelector('#password') as HTMLInputElement;
@@ -157,12 +157,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
   requires: [INotebookTracker, ITranslator, IDocumentManager],
-  activate: (
-    app: JupyterFrontEnd,
-    tracker: INotebookTracker,
-    translator: ITranslator,
-    docManager: IDocumentManager
-  ) => {
+  activate: (app: JupyterFrontEnd, tracker: INotebookTracker) => {
     debugLog('Extension is being activated...');
 
     // Get API URL from configuration or use a default
@@ -180,7 +175,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
     commands.addCommand(downloadNotebookCommand, {
       label: 'Download as Notebook (.ipynb)',
-      execute: args => {
+      execute: () => {
         debugLog('Executing download as notebook command');
         // Execute the built-in download command
         return commands.execute('docmanager:download');
@@ -255,7 +250,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       execute: () => {
         debugLog('Executing share notebook command');
         // We'll return a Promise that resolves when sharing is complete
-        return new Promise<void>(async resolve => {
+        return async (resolve: any) => {
           try {
             const notebookPanel = tracker.currentWidget;
             if (!notebookPanel) {
@@ -293,7 +288,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             });
 
             if (result.button.accept) {
-              const shareDialogData = result.value as ShareDialogData;
+              const shareDialogData = result.value as IShareDialogData;
               const { notebookName, isViewOnly, password } = shareDialogData;
               debugLog('Share dialog data:', { notebookName, isViewOnly, password: '***' });
 
@@ -371,27 +366,27 @@ const plugin: JupyterFrontEndPlugin<void> = {
                       node: (() => {
                         const container = document.createElement('div');
                         container.innerHTML = `
-                          <p style="font-size: 1.2em; margin-bottom: 15px;">
-                            ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'} 
-                            Use this link to access it:
-                          </p>
-                          <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-                            <a href="${shareableLink}" 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
-                              ${shareableLink}
-                            </a>
-                          </div>
-                          ${
-                            isViewOnly
-                              ? `<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>`
-                              : ''
-                          }
-                          <p style="font-size: 0.9em; margin-top: 15px;">
-                            <strong>Important:</strong> Save this link to access your notebook later.
-                          </p>
-                        `;
+<p style="font-size: 1.2em; margin-bottom: 15px;">
+  ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'}
+  Use this link to access it:
+</p>
+<div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+  <a href="${shareableLink}"
+    target="_blank"
+    rel="noopener noreferrer"
+    style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
+    ${shareableLink}
+  </a>
+</div>
+${
+  isViewOnly
+    ? '<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>'
+    : ''
+}
+<p style="font-size: 0.9em; margin-top: 15px;">
+  <strong>Important:</strong> Save this link to access your notebook later.
+</p>
+`;
                         return container;
                       })()
                     }),
@@ -423,8 +418,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
                     node: (() => {
                       const container = document.createElement('div');
                       container.innerHTML = `
-                        <p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-                      `;
+<p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+`;
                       return container;
                     })()
                   }),
@@ -441,7 +436,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             debugLog('Error in share dialog:', error);
             resolve();
           }
-        });
+        };
       }
     });
 
@@ -463,29 +458,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
       });
 
-      // TypeScript requires separate interface for the event handler
-      // to avoid type errors (for some unexplained reason this is how it works)
-      interface ButtonClickHandler {
-        (evt: MouseEvent): void;
-      }
-
       // Dropdown button handler
-      const handleDropdownClick: ButtonClickHandler = event => {
-        debugLog('Download dropdown clicked');
-        event.stopPropagation();
-        event.preventDefault();
-
+      function handleDropdownClick() {
         const menu = new Menu({ commands: commands as CommandRegistry });
         menu.addItem({ command: downloadNotebookCommand });
         menu.addItem({ command: downloadPDFCommand });
-        const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-        menu.open(rect.left, rect.bottom);
-      };
+      }
 
       const dropdownButton = new ToolbarButton({
         icon: caretDownIcon,
         tooltip: 'Download options',
-        // @ts-ignore - ToolbarButton's onClick typing is too restrictive
         onClick: handleDropdownClick
       });
 
@@ -561,4 +543,3 @@ const plugin: JupyterFrontEndPlugin<void> = {
 };
 
 export default plugin;
-

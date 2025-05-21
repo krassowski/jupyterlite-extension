@@ -140,7 +140,9 @@ export class SharingService {
    */
   get token(): Promise<IToken> {
     return (async () => {
-      if (this._token) return this._token;
+      if (this._token) {
+        return this._token;
+      }
       return await this.authenticate();
     })();
   }
@@ -167,7 +169,7 @@ export class SharingService {
   async authenticate(): Promise<IToken> {
     const endpoint = new URL('auth/issue', this.api_url);
     debugLog('Authenticating with endpoint:', endpoint.toString());
-    
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -182,7 +184,7 @@ export class SharingService {
 
       const responseData = await response.json();
       debugLog('Authentication successful, received token');
-      
+
       if (!validateToken(responseData)) {
         debugLog('Invalid token response:', responseData);
         throw new Error('Invalid token response');
@@ -210,7 +212,7 @@ export class SharingService {
 
     const endpoint = new URL('auth/refresh', this.api_url);
     debugLog('Refreshing token with endpoint:', endpoint.toString());
-    
+
     try {
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -226,7 +228,7 @@ export class SharingService {
 
       const refreshed = await response.json();
       debugLog('Token refresh successful');
-      
+
       if (!validateToken(refreshed)) {
         debugLog('Invalid token response from refresh:', refreshed);
         throw new Error('Invalid token response from refresh');
@@ -252,7 +254,7 @@ export class SharingService {
     const endpoint = validateUUID(id)
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
-      
+
     debugLog('Retrieving notebook with endpoint:', endpoint.toString());
 
     try {
@@ -269,7 +271,7 @@ export class SharingService {
 
       const responseData = await response.json();
       debugLog('Notebook retrieved successfully');
-      
+
       if (!validateNotebookResponse(responseData)) {
         debugLog('Invalid notebook response:', responseData);
         throw new Error('Invalid notebook response from API');
@@ -321,10 +323,10 @@ export class SharingService {
 
       const responseData = await response.json();
       debugLog('Notebook shared successfully, response:', responseData);
-      
+
       if (!validateShareResponse(responseData)) {
         debugLog('Unexpected API response:', responseData);
-        throw new Error(`Unexpected API response while sharing`);
+        throw new Error('Unexpected API response while sharing');
       }
 
       return responseData;
@@ -372,10 +374,10 @@ export class SharingService {
 
       const responseData = await response.json();
       debugLog('Notebook updated successfully, response:', responseData);
-      
+
       if (!validateShareResponse(responseData)) {
         debugLog('Unexpected API response:', responseData);
-        throw new Error(`Unexpected API response while updating`);
+        throw new Error('Unexpected API response while updating');
       }
 
       return responseData;
@@ -396,12 +398,12 @@ export class SharingService {
       debugLog('Missing notebook ID for URL generation');
       throw new Error('Notebook ID is required');
     }
-    
+
     debugLog('Generating retrieve URL for ID:', id);
     const url = validateUUID(id)
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
-    
+
     debugLog('Generated URL:', url.toString());
     return url;
   }
@@ -415,7 +417,7 @@ export class SharingService {
    */
   private async makeHeaders(token?: IToken, extra?: HeadersInit): Promise<Headers> {
     const headers = new Headers({ 'Content-Type': 'application/json' });
-    
+
     if (extra) {
       Object.entries(extra).forEach(([key, value]) => {
         headers.set(key, value.toString());
