@@ -440,18 +440,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
         // Add download-IPyNB button
         try {
-          toolbar.insertItem(insertIndex, 'downloadIpynbButton', downloadIPyNBButton);
+          toolbar.insertItem(insertIndex, 'downloadIPyNBButton', downloadIPyNBButton);
           insertIndex++;
         } catch (error) {
-          toolbar.addItem('downloadIpynbButton', downloadIPyNBButton);
+          toolbar.addItem('downloadIPyNBButton', downloadIPyNBButton);
         }
 
         // Add download-PDF button
         try {
-          toolbar.insertItem(insertIndex, 'downloadPdfButton', downloadPDFButton);
+          toolbar.insertItem(insertIndex, 'downloadPDFButton', downloadPDFButton);
           insertIndex++;
         } catch (error) {
-          toolbar.addItem('downloadPdfButton', downloadPDFButton);
+          toolbar.addItem('downloadPDFButton', downloadPDFButton);
         }
 
         // Add the share button
