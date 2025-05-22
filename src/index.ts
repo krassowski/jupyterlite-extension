@@ -347,7 +347,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                           </div>
                           ${
                             isViewOnly
-                              ? `<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>`
+                              ? '<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>'
                               : ''
                           }
                           <p style="font-size: 0.9em; margin-top: 15px;">
