@@ -278,10 +278,10 @@ export class SharingService {
       throw new Error(`Sharing notebook failed: ${response.statusText}`);
     }
 
-        throw new Error(`Unexpected API response while sharing`);
     const responseData = await response.json();
 
     if (!validateShareResponse(responseData)) {
+      throw new Error('Unexpected API response while sharing');
     }
 
     return responseData;
@@ -317,10 +317,10 @@ export class SharingService {
       throw new Error(`Updating notebook failed: ${response.statusText}`);
     }
 
-        throw new Error(`Unexpected API response while updating`);
     const responseData = await response.json();
 
     if (!validateShareResponse(responseData)) {
+      throw new Error('Unexpected API response while updating');
     }
 
     return responseData;
