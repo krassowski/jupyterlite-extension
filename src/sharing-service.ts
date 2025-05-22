@@ -135,7 +135,9 @@ export class SharingService {
    */
   get token(): Promise<IToken> {
     return (async () => {
-      if (this._token) return this._token;
+      if (this._token) {
+        return this._token;
+      }
       return await this.authenticate();
     })();
   }
