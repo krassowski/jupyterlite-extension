@@ -4291,13 +4291,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:^5.3.0":
-  version: 5.4.1
-  resolution: "chalk@npm:5.4.1"
-  checksum: 0c656f30b782fed4d99198825c0860158901f449a6b12b818b0aabad27ec970389e7e8767d0e00762175b23620c812e70c4fd92c0210e55fc2d993638b74e86e
-  languageName: node
-  linkType: hard
-
 "char-regex@npm:^1.0.2":
   version: 1.0.2
   resolution: "char-regex@npm:1.0.2"
@@ -5725,7 +5718,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^10.2.2, glob@npm:^10.3.10, glob@npm:^10.3.7, glob@npm:^10.4.2":
+"glob@npm:^10.2.2, glob@npm:^10.3.10, glob@npm:^10.3.7":
   version: 10.4.5
   resolution: "glob@npm:10.4.5"
   dependencies:
@@ -7275,7 +7268,6 @@ __metadata:
     jest: ^29.2.0
     npm-run-all: ^4.1.5
     prettier: ^3.0.0
-    replace-in-file: ^8.2.0
     rimraf: ^5.0.1
     source-map-loader: ^1.0.2
     style-loader: ^3.3.1
@@ -8696,19 +8688,6 @@ __metadata:
   bin:
     regjsparser: bin/parser
   checksum: 094b55b0ab3e1fd58f8ce5132a1d44dab08d91f7b0eea4132b0157b303ebb8ded20a9cbd893d25402d2aeddb23fac1f428ab4947b295d6fa51dd1c334a9e76f0
-  languageName: node
-  linkType: hard
-
-"replace-in-file@npm:^8.2.0":
-  version: 8.3.0
-  resolution: "replace-in-file@npm:8.3.0"
-  dependencies:
-    chalk: ^5.3.0
-    glob: ^10.4.2
-    yargs: ^17.7.2
-  bin:
-    replace-in-file: bin/cli.js
-  checksum: b8ab1e0d8f57739b0500e648b4cbdbbbf0eec6bcc63cf0f32738aafb6b00d681fe4e6b7782b0d31aac5097418d50693a8c3041fe0a59f42a6d9f1de04e308e68
   languageName: node
   linkType: hard
 
@@ -10609,7 +10588,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.3.1, yargs@npm:^17.7.2":
+"yargs@npm:^17.3.1":
   version: 17.7.2
   resolution: "yargs@npm:17.7.2"
   dependencies:
