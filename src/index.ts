@@ -31,7 +31,7 @@ function getCurrentNotebook(
 /**
  * Share dialog data interface.
  */
-interface ShareDialogData {
+interface IShareDialogData {
   notebookName: string;
   isViewOnly: boolean;
   password: string;
@@ -46,7 +46,7 @@ class ShareDialog extends Widget {
     this.node.appendChild(this.createNode());
   }
 
-  getValue(): ShareDialogData {
+  getValue(): IShareDialogData {
     const nameInput = this.node.querySelector('#notebook-name') as HTMLInputElement;
     const viewOnlyCheckbox = this.node.querySelector('#view-only') as HTMLInputElement;
     const passwordInput = this.node.querySelector('#password') as HTMLInputElement;
@@ -266,7 +266,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             });
 
             if (result.button.accept) {
-              const shareDialogData = result.value as ShareDialogData;
+              const shareDialogData = result.value as IShareDialogData;
               const { notebookName, isViewOnly, password } = shareDialogData;
 
               try {
