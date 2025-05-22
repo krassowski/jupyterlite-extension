@@ -232,172 +232,161 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const shareNotebookCommand = 'jupytereverywhere:share-notebook';
     commands.addCommand(shareNotebookCommand, {
       label: 'Share Notebook',
-      execute: () => {
-        // We'll return a Promise that resolves when sharing is complete
-        return new Promise<void>(async resolve => {
-          try {
-            const notebookPanel = tracker.currentWidget;
-            if (!notebookPanel) {
-              resolve();
-              return;
-            }
+      execute: async () => {
+        try {
+          const notebookPanel = tracker.currentWidget;
+          if (!notebookPanel) {
+            return;
+          }
 
-            // Save the notebook before we share it.
-            await notebookPanel.context.save();
+          // Save the notebook before we share it.
+          await notebookPanel.context.save();
 
-            const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
+          const notebookContent = notebookPanel.context.model.toJSON() as INotebookContent;
 
-            // Check if notebook has already been shared; access metadata using notebook content
-            let notebookId: string | undefined;
-            if (
-              notebookContent.metadata &&
-              typeof notebookContent.metadata === 'object' &&
-              'sharedId' in notebookContent.metadata
-            ) {
-              notebookId = notebookContent.metadata.sharedId as string;
-            }
+          // Check if notebook has already been shared; access metadata using notebook content
+          let notebookId: string | undefined;
+          if (
+            notebookContent.metadata &&
+            typeof notebookContent.metadata === 'object' &&
+            'sharedId' in notebookContent.metadata
+          ) {
+            notebookId = notebookContent.metadata.sharedId as string;
+          }
 
-            const isNewShare = !notebookId;
+          const isNewShare = !notebookId;
 
-            const result = await showDialog({
-              title: isNewShare ? 'Share Notebook' : 'Update Shared Notebook',
-              body: new ShareDialog(),
-              buttons: [Dialog.cancelButton(), Dialog.okButton()]
-            });
+          const result = await showDialog({
+            title: isNewShare ? 'Share Notebook' : 'Update Shared Notebook',
+            body: new ShareDialog(),
+            buttons: [Dialog.cancelButton(), Dialog.okButton()]
+          });
 
-            if (result.button.accept) {
-              const shareDialogData = result.value as IShareDialogData;
-              const { notebookName, isViewOnly, password } = shareDialogData;
+          if (result.button.accept) {
+            const shareDialogData = result.value as IShareDialogData;
+            const { notebookName, isViewOnly, password } = shareDialogData;
 
-              try {
-                // Show loading indicator
-                // TODO: this doesn't show up in the dialog properly, we could
-                // even remove it as loading doesn't take long at all
-                const loadingIndicator = document.createElement('div');
-                loadingIndicator.textContent = 'Sharing notebook...';
-                loadingIndicator.style.position = 'fixed';
-                loadingIndicator.style.bottom = '20px';
-                loadingIndicator.style.right = '20px';
-                loadingIndicator.style.padding = '10px';
-                loadingIndicator.style.backgroundColor = '#f0f0f0';
-                loadingIndicator.style.borderRadius = '5px';
-                loadingIndicator.style.zIndex = '1000';
-                document.body.appendChild(loadingIndicator);
+            try {
+              // Show loading indicator
+              // TODO: this doesn't show up in the dialog properly, we could
+              // even remove it as loading doesn't take long at all
+              const loadingIndicator = document.createElement('div');
+              loadingIndicator.textContent = 'Sharing notebook...';
+              loadingIndicator.style.position = 'fixed';
+              loadingIndicator.style.bottom = '20px';
+              loadingIndicator.style.right = '20px';
+              loadingIndicator.style.padding = '10px';
+              loadingIndicator.style.backgroundColor = '#f0f0f0';
+              loadingIndicator.style.borderRadius = '5px';
+              loadingIndicator.style.zIndex = '1000';
+              document.body.appendChild(loadingIndicator);
 
-                await sharingService.authenticate();
+              await sharingService.authenticate();
 
-                let shareResponse;
-                if (isNewShare) {
-                  shareResponse = await sharingService.share(
-                    notebookContent,
-                    isViewOnly ? password : undefined
-                  );
-                } else if (notebookId) {
-                  shareResponse = await sharingService.update(
-                    notebookId,
-                    notebookContent,
-                    isViewOnly ? password : undefined
-                  );
+              let shareResponse;
+              if (isNewShare) {
+                shareResponse = await sharingService.share(
+                  notebookContent,
+                  isViewOnly ? password : undefined
+                );
+              } else if (notebookId) {
+                shareResponse = await sharingService.update(
+                  notebookId,
+                  notebookContent,
+                  isViewOnly ? password : undefined
+                );
+              }
+
+              if (shareResponse && shareResponse.notebook) {
+                // We need to update the metadata in the notebookContent first
+                // to do this, and we need to ensure that the metadata object exists
+                if (!notebookContent.metadata) {
+                  notebookContent.metadata = {};
                 }
 
-                if (shareResponse && shareResponse.notebook) {
-                  // We need to update the metadata in the notebookContent first
-                  // to do this, and we need to ensure that the metadata object exists
-                  if (!notebookContent.metadata) {
-                    notebookContent.metadata = {};
-                  }
+                notebookContent.metadata.sharedId = shareResponse.notebook.id;
+                notebookContent.metadata.readableId = shareResponse.notebook.readable_id;
+                notebookContent.metadata.sharedName = notebookName;
+                notebookContent.metadata.isPasswordProtected = isViewOnly;
 
-                  notebookContent.metadata.sharedId = shareResponse.notebook.id;
-                  notebookContent.metadata.readableId = shareResponse.notebook.readable_id;
-                  notebookContent.metadata.sharedName = notebookName;
-                  notebookContent.metadata.isPasswordProtected = isViewOnly;
+                notebookPanel.context.model.fromJSON(notebookContent);
+              }
 
-                  notebookPanel.context.model.fromJSON(notebookContent);
-                }
+              let shareableLink = '';
+              if (shareResponse && shareResponse.notebook) {
+                const id = shareResponse.notebook.readable_id || shareResponse.notebook.id;
+                shareableLink = sharingService.makeRetrieveURL(id).toString();
+              }
 
-                let shareableLink = '';
-                if (shareResponse && shareResponse.notebook) {
-                  const id = shareResponse.notebook.readable_id || shareResponse.notebook.id;
-                  shareableLink = sharingService.makeRetrieveURL(id).toString();
-                }
+              // Remove loading indicator
+              document.body.removeChild(loadingIndicator);
 
-                // Remove loading indicator
-                document.body.removeChild(loadingIndicator);
-
-                if (shareableLink) {
-                  void showDialog({
-                    title: isNewShare
-                      ? 'Notebook Shared Successfully'
-                      : 'Notebook Updated Successfully',
-                    body: new Widget({
-                      node: (() => {
-                        const container = document.createElement('div');
-                        container.innerHTML = `
-                          <p style="font-size: 1.2em; margin-bottom: 15px;">
-                            ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'}
-                            Use this link to access it:
-                          </p>
-                          <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-                            <a href="${shareableLink}"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
-                              ${shareableLink}
-                            </a>
-                          </div>
-                          ${
-                            isViewOnly
-                              ? '<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>'
-                              : ''
-                          }
-                          <p style="font-size: 0.9em; margin-top: 15px;">
-                            <strong>Important:</strong> Save this link to access your notebook later.
-                          </p>
-                        `;
-                        return container;
-                      })()
-                    }),
-                    buttons: [
-                      Dialog.okButton({ label: 'Copy Link' }),
-                      Dialog.cancelButton({ label: 'Close' })
-                    ]
-                  })
-                    .then(result => {
-                      if (result.button.label === 'Copy Link') {
-                        void navigator.clipboard
-                          .writeText(shareableLink)
-                          .catch(err => console.error('Failed to copy link:', err));
-                      }
-                      resolve();
-                    })
-                    .catch(() => resolve());
-                } else {
-                  resolve();
-                }
-              } catch (error) {
-                void showDialog({
-                  title: 'Error',
+              if (shareableLink) {
+                const dialogResult = await showDialog({
+                  title: isNewShare
+                    ? 'Notebook Shared Successfully'
+                    : 'Notebook Updated Successfully',
                   body: new Widget({
                     node: (() => {
                       const container = document.createElement('div');
                       container.innerHTML = `
-                        <p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+                        <p style="font-size: 1.2em; margin-bottom: 15px;">
+                          ${isNewShare ? 'Your notebook is now shared!' : 'Your notebook has been updated!'}
+                          Use this link to access it:
+                        </p>
+                        <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                          <a href="${shareableLink}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style="font-size: 1.1em; color: #007bff; text-decoration: underline; word-break: break-all;">
+                            ${shareableLink}
+                          </a>
+                        </div>
+                        ${
+                          isViewOnly
+                            ? '<p style="margin-top: 15px;"><strong>Note:</strong> This notebook is password-protected.</p>'
+                            : ''
+                        }
+                        <p style="font-size: 0.9em; margin-top: 15px;">
+                          <strong>Important:</strong> Save this link to access your notebook later.
+                        </p>
                       `;
                       return container;
                     })()
                   }),
-                  buttons: [Dialog.okButton()]
-                })
-                  .then(() => resolve())
-                  .catch(() => resolve());
+                  buttons: [
+                    Dialog.okButton({ label: 'Copy Link' }),
+                    Dialog.cancelButton({ label: 'Close' })
+                  ]
+                });
+
+                if (dialogResult.button.label === 'Copy Link') {
+                  try {
+                    await navigator.clipboard.writeText(shareableLink);
+                  } catch (err) {
+                    console.error('Failed to copy link:', err);
+                  }
+                }
               }
-            } else {
-              resolve();
+            } catch (error) {
+              await showDialog({
+                title: 'Error',
+                body: new Widget({
+                  node: (() => {
+                    const container = document.createElement('div');
+                    container.innerHTML = `
+                      <p>Failed to share notebook: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+                    `;
+                    return container;
+                  })()
+                }),
+                buttons: [Dialog.okButton()]
+              });
             }
-          } catch (error) {
-            resolve();
           }
-        });
+        } catch (error) {
+          console.error('Error in share command:', error);
+        }
       }
     });
 
