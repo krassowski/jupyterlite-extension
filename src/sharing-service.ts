@@ -1,11 +1,126 @@
 import { INotebookContent } from '@jupyterlab/nbformat';
 
-import { validateNotebookContent } from './notebook';
-import { IToken, validateToken } from './token';
-import { UUID, validateUUID } from './uuid';
-import { hasRequiredKeys } from './validator';
+/**
+ * Token interface from the API
+ */
+export interface IToken {
+  token: string;
+}
 
-/** Service for sharing and retrieving Jupyter notebooks. */
+/**
+ * UUID type for notebook IDs
+ */
+export type UUID = string;
+
+/**
+ * Represents the response from sharing a notebook.
+ */
+export interface IShareResponse {
+  message: string;
+  notebook: {
+    id: UUID;
+    readable_id: string;
+    password?: string; // Optional password from API
+  };
+}
+
+/**
+ * Response from retrieving a notebook
+ */
+export interface INotebookResponse {
+  id: UUID;
+  domain_id: string;
+  readable_id: string;
+  content: INotebookContent;
+}
+
+/**
+ * Validates if a string is a valid UUID
+ */
+export function validateUUID(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+/**
+ * Validation helper for objects
+ */
+export function hasRequiredKeys<T extends object, K extends keyof T>(
+  obj: unknown,
+  requiredKeys: K[]
+): obj is T {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  return requiredKeys.every(key => key in obj);
+}
+
+/**
+ * Validates token objects
+ */
+export function validateToken(data: unknown): data is IToken {
+  return (
+    hasRequiredKeys<IToken, keyof IToken>(data, ['token']) &&
+    typeof (data as IToken).token === 'string'
+  );
+}
+
+/**
+ * Validates notebook content
+ */
+export function validateNotebookContent(data: unknown): data is INotebookContent {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const requiredKeys: (keyof INotebookContent)[] = ['cells', 'metadata', 'nbformat'];
+  return requiredKeys.every(key => key in data);
+}
+
+/**
+ * Validates if the provided data conforms to the IShareResponse interface.
+ *
+ * Checks for notebook ID
+ *
+ * @param data - The response to validate.
+ * @returns A boolean indicating whether the data conforms to the IShareResponse interface.
+ */
+function validateShareResponse(data: unknown): data is IShareResponse {
+  return (
+    hasRequiredKeys<IShareResponse, keyof IShareResponse>(data, ['message', 'notebook']) &&
+    typeof (data as IShareResponse).message === 'string' &&
+    hasRequiredKeys<IShareResponse['notebook'], keyof IShareResponse['notebook']>(
+      (data as IShareResponse).notebook,
+      ['id', 'readable_id']
+    ) &&
+    validateUUID((data as IShareResponse).notebook.id)
+  );
+}
+
+/**
+ * Validates if the given data conforms to the INotebookResponse interface.
+ *
+ * @param data - The data to be validated.
+ * @returns A boolean indicating whether the data is a valid INotebookResponse.
+ */
+function validateNotebookResponse(data: unknown): data is INotebookResponse {
+  return (
+    hasRequiredKeys<INotebookResponse, keyof INotebookResponse>(data, [
+      'id',
+      'domain_id',
+      'readable_id',
+      'content'
+    ]) &&
+    validateUUID((data as INotebookResponse).id) &&
+    typeof (data as INotebookResponse).domain_id === 'string' &&
+    typeof (data as INotebookResponse).readable_id === 'string' &&
+    validateNotebookContent((data as INotebookResponse).content)
+  );
+}
+
+/**
+ * Service for interacting with the CKHub Sharing API
+ */
 export class SharingService {
   /** The base URL of the API (e.g. localhost:8080/api/v1/). */
   private readonly api_url: URL;
@@ -19,7 +134,12 @@ export class SharingService {
    * @returns A promise that resolves to the current authentication token.
    */
   get token(): Promise<IToken> {
-    return (async () => this._token ?? (await this.authenticate()))();
+    return (async () => {
+      if (this._token) {
+        return this._token;
+      }
+      return await this.authenticate();
+    })();
   }
 
   /**
@@ -42,16 +162,18 @@ export class SharingService {
    */
   async authenticate(): Promise<IToken> {
     const endpoint = new URL('auth/issue', this.api_url);
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: await this.makeHeaders()
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to authenticate: ${response.statusText}`);
+      throw new Error(`Authentication failed: ${response.statusText}`);
     }
 
     const responseData = await response.json();
+
     if (!validateToken(responseData)) {
       throw new Error('Invalid token response');
     }
@@ -68,24 +190,26 @@ export class SharingService {
    * @throws {Error} If the authentication request fails or the token response is invalid.
    */
   async refresh(token?: IToken): Promise<IToken> {
-    token = await this.token;
     if (!token) {
-      throw new Error('No token to refresh');
+      token = await this.token;
     }
 
     const endpoint = new URL('auth/refresh', this.api_url);
+
     const response = await fetch(endpoint, {
       method: 'POST',
-      body: JSON.stringify(token)
+      headers: await this.makeHeaders(),
+      body: JSON.stringify({ token: token.token })
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to refresh token: ${response.statusText}`);
+      throw new Error(`Token refresh failed: ${response.statusText}`);
     }
 
     const refreshed = await response.json();
+
     if (!validateToken(refreshed)) {
-      throw new Error('Invalid token response');
+      throw new Error('Invalid token response from refresh');
     }
 
     this._token = refreshed;
@@ -105,8 +229,9 @@ export class SharingService {
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
 
+    const token = await this.token;
     const response = await fetch(endpoint, {
-      headers: await this.makeHeaders(await this.token)
+      headers: await this.makeHeaders(token)
     });
 
     if (!response.ok) {
@@ -114,8 +239,9 @@ export class SharingService {
     }
 
     const responseData = await response.json();
+
     if (!validateNotebookResponse(responseData)) {
-      throw new Error('Invalid notebook response');
+      throw new Error('Invalid notebook response from API');
     }
 
     return responseData;
@@ -131,28 +257,70 @@ export class SharingService {
    */
   async share(notebook: INotebookContent, password?: string): Promise<IShareResponse> {
     if (!validateNotebookContent(notebook)) {
-      throw new Error('Invalid notebook given.');
+      throw new Error('Invalid notebook content');
     }
 
-    const requestData = { notebook, password };
-    if (!requestData.password) {
-      delete requestData.password;
+    const requestData: Record<string, any> = { notebook };
+    if (password) {
+      requestData.password = password;
     }
 
     const endpoint = new URL('notebooks', this.api_url);
+
+    const token = await this.token;
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: await this.makeHeaders(await this.token),
+      headers: await this.makeHeaders(token),
       body: JSON.stringify(requestData)
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to share data: ${response.statusText}`);
+      throw new Error(`Sharing notebook failed: ${response.statusText}`);
     }
 
     const responseData = await response.json();
+
     if (!validateShareResponse(responseData)) {
-      throw new Error(`Unexpected share response: ${JSON.stringify(responseData)}`);
+      throw new Error('Unexpected API response while sharing');
+    }
+
+    return responseData;
+  }
+
+  /**
+   * Updates an existing shared notebook
+   * @param id - Notebook ID
+   * @param notebook - Updated notebook content
+   * @param password - Password if notebook is protected
+   * @returns API response with updated notebook details
+   */
+  async update(id: string, notebook: INotebookContent, password?: string): Promise<IShareResponse> {
+    if (!validateNotebookContent(notebook)) {
+      throw new Error('Invalid notebook content');
+    }
+
+    const requestData: Record<string, any> = { notebook };
+    if (password) {
+      requestData.password = password;
+    }
+
+    const endpoint = new URL(`notebooks/${id}`, this.api_url);
+
+    const token = await this.token;
+    const response = await fetch(endpoint, {
+      method: 'PUT',
+      headers: await this.makeHeaders(token),
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Updating notebook failed: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+
+    if (!validateShareResponse(responseData)) {
+      throw new Error('Unexpected API response while updating');
     }
 
     return responseData;
@@ -165,9 +333,15 @@ export class SharingService {
    * @returns The constructed URL for retrieving the notebook.
    */
   makeRetrieveURL(id: UUID | string): URL {
-    return validateUUID(id)
+    if (!id) {
+      throw new Error('Notebook ID is required');
+    }
+
+    const url = validateUUID(id)
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
+
+    return url;
   }
 
   /**
@@ -178,8 +352,13 @@ export class SharingService {
    * @returns A promise that resolves to the constructed headers.
    */
   private async makeHeaders(token?: IToken, extra?: HeadersInit): Promise<Headers> {
-    extra = extra ?? {};
-    const headers = new Headers({ 'Content-Type': 'application/json', ...extra });
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+
+    if (extra) {
+      Object.entries(extra).forEach(([key, value]) => {
+        headers.set(key, value.toString());
+      });
+    }
 
     if (token) {
       headers.set('Authorization', `Bearer ${token.token}`);
@@ -187,66 +366,4 @@ export class SharingService {
 
     return headers;
   }
-}
-
-/**
- * Represents the response from sharing a notebook.
- */
-interface IShareResponse {
-  message: string;
-  notebook: {
-    id: UUID;
-    readable_id: string;
-  };
-}
-
-/**
- * Validates if the provided data conforms to the IShareResponse interface.
- *
- * @param data - The data to validate.
- * @returns A boolean indicating whether the data conforms to the IShareResponse interface.
- */
-function validateShareResponse(data: unknown): data is IShareResponse {
-  return (
-    hasRequiredKeys<IShareResponse, keyof IShareResponse>(data, ['message', 'notebook']) &&
-    typeof data.message === 'string' &&
-    hasRequiredKeys<IShareResponse['notebook'], keyof IShareResponse['notebook']>(
-      data['notebook'],
-      ['id', 'readable_id']
-    ) &&
-    validateUUID(data.notebook.id)
-    // TODO: bug where readable_id is null
-    // && data.notebook.readable_id === 'string'
-  );
-}
-
-/**
- * Represents the response from retrieving a notebook.
- */
-interface INotebookResponse {
-  id: UUID;
-  domain_id: string;
-  readable_id: string;
-  content: INotebookContent;
-}
-
-/**
- * Validates if the given data conforms to the INotebookResponse interface.
- *
- * @param data - The data to be validated.
- * @returns A boolean indicating whether the data is a valid INotebookResponse.
- */
-function validateNotebookResponse(data: unknown): data is INotebookResponse {
-  return (
-    hasRequiredKeys<INotebookResponse, keyof INotebookResponse>(data, [
-      'id',
-      'domain_id',
-      'readable_id',
-      'content'
-    ]) &&
-    validateUUID(data.id) &&
-    typeof (data as INotebookResponse).domain_id === 'string' &&
-    typeof (data as INotebookResponse).readable_id === 'string' &&
-    validateNotebookContent(data.content)
-  );
 }
