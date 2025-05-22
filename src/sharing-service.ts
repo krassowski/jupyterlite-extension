@@ -168,7 +168,6 @@ export class SharingService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Authentication failed: ${response.statusText}`);
       }
 
@@ -207,7 +206,6 @@ export class SharingService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Token refresh failed: ${response.statusText}`);
       }
 
@@ -244,7 +242,6 @@ export class SharingService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Failed to retrieve notebook: ${response.statusText}`);
       }
 
@@ -289,7 +286,6 @@ export class SharingService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Sharing notebook failed: ${response.statusText}`);
       }
 
@@ -333,7 +329,6 @@ export class SharingService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
         throw new Error(`Updating notebook failed: ${response.statusText}`);
       }
 
