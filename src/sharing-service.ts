@@ -163,27 +163,23 @@ export class SharingService {
   async authenticate(): Promise<IToken> {
     const endpoint = new URL('auth/issue', this.api_url);
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: await this.makeHeaders()
-      });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: await this.makeHeaders()
+    });
 
-      if (!response.ok) {
-        throw new Error(`Authentication failed: ${response.statusText}`);
-      }
-
-      const responseData = await response.json();
-
-      if (!validateToken(responseData)) {
-        throw new Error('Invalid token response');
-      }
-
-      this._token = responseData;
-      return responseData;
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Authentication failed: ${response.statusText}`);
     }
+
+    const responseData = await response.json();
+
+    if (!validateToken(responseData)) {
+      throw new Error('Invalid token response');
+    }
+
+    this._token = responseData;
+    return responseData;
   }
 
   /**
@@ -200,28 +196,24 @@ export class SharingService {
 
     const endpoint = new URL('auth/refresh', this.api_url);
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: await this.makeHeaders(),
-        body: JSON.stringify({ token: token.token })
-      });
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: await this.makeHeaders(),
+      body: JSON.stringify({ token: token.token })
+    });
 
-      if (!response.ok) {
-        throw new Error(`Token refresh failed: ${response.statusText}`);
-      }
-
-      const refreshed = await response.json();
-
-      if (!validateToken(refreshed)) {
-        throw new Error('Invalid token response from refresh');
-      }
-
-      this._token = refreshed;
-      return refreshed;
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Token refresh failed: ${response.statusText}`);
     }
+
+    const refreshed = await response.json();
+
+    if (!validateToken(refreshed)) {
+      throw new Error('Invalid token response from refresh');
+    }
+
+    this._token = refreshed;
+    return refreshed;
   }
 
   /**
@@ -237,26 +229,22 @@ export class SharingService {
       ? new URL(`notebooks/${id}`, this.api_url)
       : new URL(`notebooks/get-by-readable-id/${id}`, this.api_url);
 
-    try {
-      const token = await this.token;
-      const response = await fetch(endpoint, {
-        headers: await this.makeHeaders(token)
-      });
+    const token = await this.token;
+    const response = await fetch(endpoint, {
+      headers: await this.makeHeaders(token)
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to retrieve notebook: ${response.statusText}`);
-      }
-
-      const responseData = await response.json();
-
-      if (!validateNotebookResponse(responseData)) {
-        throw new Error('Invalid notebook response from API');
-      }
-
-      return responseData;
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Failed to retrieve notebook: ${response.statusText}`);
     }
+
+    const responseData = await response.json();
+
+    if (!validateNotebookResponse(responseData)) {
+      throw new Error('Invalid notebook response from API');
+    }
+
+    return responseData;
   }
 
   /**
@@ -279,28 +267,24 @@ export class SharingService {
 
     const endpoint = new URL('notebooks', this.api_url);
 
-    try {
-      const token = await this.token;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: await this.makeHeaders(token),
-        body: JSON.stringify(requestData)
-      });
+    const token = await this.token;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: await this.makeHeaders(token),
+      body: JSON.stringify(requestData)
+    });
 
-      if (!response.ok) {
-        throw new Error(`Sharing notebook failed: ${response.statusText}`);
-      }
-
-      const responseData = await response.json();
-
-      if (!validateShareResponse(responseData)) {
-        throw new Error(`Unexpected API response while sharing`);
-      }
-
-      return responseData;
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Sharing notebook failed: ${response.statusText}`);
     }
+
+        throw new Error(`Unexpected API response while sharing`);
+    const responseData = await response.json();
+
+    if (!validateShareResponse(responseData)) {
+    }
+
+    return responseData;
   }
 
   /**
@@ -322,28 +306,24 @@ export class SharingService {
 
     const endpoint = new URL(`notebooks/${id}`, this.api_url);
 
-    try {
-      const token = await this.token;
-      const response = await fetch(endpoint, {
-        method: 'PUT',
-        headers: await this.makeHeaders(token),
-        body: JSON.stringify(requestData)
-      });
+    const token = await this.token;
+    const response = await fetch(endpoint, {
+      method: 'PUT',
+      headers: await this.makeHeaders(token),
+      body: JSON.stringify(requestData)
+    });
 
-      if (!response.ok) {
-        throw new Error(`Updating notebook failed: ${response.statusText}`);
-      }
-
-      const responseData = await response.json();
-
-      if (!validateShareResponse(responseData)) {
-        throw new Error(`Unexpected API response while updating`);
-      }
-
-      return responseData;
-    } catch (error) {
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Updating notebook failed: ${response.statusText}`);
     }
+
+        throw new Error(`Unexpected API response while updating`);
+    const responseData = await response.json();
+
+    if (!validateShareResponse(responseData)) {
+    }
+
+    return responseData;
   }
 
   /**
