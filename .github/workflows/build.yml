@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  lint-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,6 +34,19 @@ jobs:
       run: |
         set -eux
         jlpm run test
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Base Setup
+      uses: jupyterlab/maintainer-tools/.github/actions/base-setup@v1
+
+    - name: Install dependencies
+      run: python -m pip install -U "jupyterlab>=4.0.0,<5"
 
     - name: Build the extension
       run: |
@@ -58,6 +71,78 @@ jobs:
         name: extension-artifacts
         path: dist/jupytereverywhere*
         if-no-files-found: error
+
+  lite:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    - uses: actions/download-artifact@v4
+      with:
+        name: extension-artifacts
+    - name: Install the dependencies
+      run: |
+        cd lite
+        pip install -r requirements.txt
+
+    - name: Install Jupyter Everywhere extension
+      run: |
+        pip install jupytereverywhere*.whl
+
+    - name: Build the JupyterLite app
+      run: |
+        cd lite
+        jupyter lite build --output-dir dist
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: lite-app
+        path: ./lite/dist
+        if-no-files-found: error
+
+    - name: Upload GitHub Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./lite/dist
+
+    - name: Leave instructions for testing
+      run: |
+        echo "### JupyterLite App is ready" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo 'To test it locally, download the `lite-app` artifact and run' >> $GITHUB_STEP_SUMMARY
+        echo '```bash' >> $GITHUB_STEP_SUMMARY
+        echo "rm -r lite-app" >> $GITHUB_STEP_SUMMARY
+        echo "unzip lite-app.zip -d lite-app" >> $GITHUB_STEP_SUMMARY
+        echo "cd lite-app" >> $GITHUB_STEP_SUMMARY
+        echo "python -m http.server -b 127.0.0.1" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo 'And navigate to http://127.0.0.1:8000/' >> $GITHUB_STEP_SUMMARY
+        echo 'Press ctrl + c to stop the server.' >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    needs: lite
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   test_isolated:
     needs: build
@@ -88,7 +173,7 @@ jobs:
 
   integration-tests:
     name: Integration tests
-    needs: build
+    needs: lite
     runs-on: ubuntu-latest
 
     env:
@@ -104,12 +189,13 @@ jobs:
     - name: Download extension package
       uses: actions/download-artifact@v4
       with:
-        name: extension-artifacts
+        name: lite-app
+        path: dist
 
-    - name: Install the extension
+    - name: Install jlpm
       run: |
         set -eux
-        python -m pip install "jupyterlab>=4.0.0,<5" jupytereverywhere*.whl
+        python -m pip install "jupyterlab>=4.0.0,<5"
 
     - name: Install dependencies
       working-directory: ui-tests

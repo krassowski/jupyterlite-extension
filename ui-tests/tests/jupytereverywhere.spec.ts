@@ -1,21 +1,32 @@
-import { expect, test } from '@jupyterlab/galata';
+import { test, expect, Page } from '@playwright/test';
+import type { JupyterLab } from '@jupyterlab/application';
+import type { JSONObject } from '@lumino/coreutils';
 
-/**
- * Don't load JupyterLab webpage before running the tests.
- * This is required to ensure we capture all log messages.
- */
-test.use({ autoGoto: false });
+declare global {
+  interface Window {
+    jupyterapp: JupyterLab;
+  }
+}
 
-test('should emit an activation console message', async ({ page }) => {
-  const logs: string[] = [];
+async function runCommnad(page: Page, command: string, args: JSONObject = {}) {
+  await page.evaluate(
+    async ({ command, args }) => {
+      await window.jupyterapp.commands.execute(command, args);
+    },
+    { command, args }
+  );
+}
 
-  page.on('console', message => {
-    logs.push(message.text());
+test.describe('General', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('lab/index.html');
+    await page.waitForSelector('.jp-LabShell');
   });
-
-  await page.goto();
-
-  expect(
-    logs.filter(s => s === 'JupyterLab extension jupytereverywhere is activated!')
-  ).toHaveLength(1);
+  test('Should load the notebook', async ({ page }) => {
+    await runCommnad(page, 'docmanager:new-untitled', { type: 'notebook' });
+    await runCommnad(page, 'docmanager:open', { path: 'Untitled.ipynb' });
+    expect(await page.locator('.jp-LabShell').screenshot()).toMatchSnapshot(
+      'application-shell.png'
+    );
+  });
 });
