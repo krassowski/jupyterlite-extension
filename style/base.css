@@ -5,6 +5,7 @@
 */
 #jp-menu-panel,
 #jp-top-bar,
+#jp-top-panel,
 .jp-LabShell[data-shell-mode='single-document'] #jp-menu-panel,
 .jp-LabShell[data-shell-mode='single-document'] #jp-top-bar {
   /* Hide the empty menu panel widget */
