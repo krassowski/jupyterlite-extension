@@ -11,6 +11,7 @@ import { INotebookContent } from '@jupyterlab/nbformat';
 import React from 'react';
 
 import { SharingService } from './sharing-service';
+import { DownloadDropdownButton } from './ui-components';
 
 /**
  * Get the current notebook panel
@@ -269,7 +270,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
      */
     const downloadNotebookCommand = 'jupytereverywhere:download-notebook';
     commands.addCommand(downloadNotebookCommand, {
-      label: 'Download as Notebook (.ipynb)',
+      label: 'Download as IPyNB',
+      icon: downloadIcon,
       execute: args => {
         // Execute the built-in download command
         return commands.execute('docmanager:download');
@@ -282,6 +284,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const downloadPDFCommand = 'jupytereverywhere:download-pdf';
     commands.addCommand(downloadPDFCommand, {
       label: 'Download as PDF',
+      icon: fileIcon,
       execute: args => {
         const current = getCurrentNotebook(tracker, shell, args);
         if (!current) {
@@ -472,28 +475,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     /**
-     * Create a "Download IPyNB" button
+     * Create the Download dropdown
      */
-    const downloadIPyNBButton = new ToolbarButton({
-      label: 'Download IPyNB',
-      icon: downloadIcon,
-      tooltip: 'Download this notebook as .ipynb',
-      onClick: () => {
-        void commands.execute(downloadNotebookCommand);
-      }
-    });
-
-    /**
-     * Create a "Download PDF" button
-     */
-    const downloadPDFButton = new ToolbarButton({
-      label: 'Download PDF',
-      icon: fileIcon,
-      tooltip: 'Download this notebook as PDF',
-      onClick: () => {
-        void commands.execute(downloadPDFCommand);
-      }
-    });
+    const downloadDropdownButton = new DownloadDropdownButton(commands);
 
     tracker.widgetAdded.connect((_, notebookPanel) => {
       if (notebookPanel) {
@@ -507,20 +491,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
         });
 
-        // Add download-IPyNB button
+        // Add download dropdown button
         try {
-          toolbar.insertItem(insertIndex, 'downloadIPyNBButton', downloadIPyNBButton);
+          toolbar.insertItem(insertIndex, 'downloadDropdownButton', downloadDropdownButton);
           insertIndex++;
         } catch (error) {
-          toolbar.addItem('downloadIPyNBButton', downloadIPyNBButton);
-        }
-
-        // Add download-PDF button
-        try {
-          toolbar.insertItem(insertIndex, 'downloadPDFButton', downloadPDFButton);
-          insertIndex++;
-        } catch (error) {
-          toolbar.addItem('downloadPDFButton', downloadPDFButton);
+          toolbar.addItem('downloadDropdownButton', downloadDropdownButton);
         }
 
         // Add the share button
