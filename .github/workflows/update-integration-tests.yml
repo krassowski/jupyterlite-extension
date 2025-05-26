@@ -71,6 +71,11 @@ jobs:
       - name: Install jlpm
         run: python -m pip install -U "jupyterlab>=4.0.0,<5"
 
+      - name: Install the lite dependencies
+        run: |
+          cd lite
+          pip install -r requirements.txt
+
       - name: Install extension
         run: |
           set -eux
