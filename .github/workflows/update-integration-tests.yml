@@ -85,7 +85,7 @@ jobs:
       - name: Build the JupyterLite app
         run: |
           cd lite
-          jupyter lite build --output-dir .
+          jupyter lite build --output-dir ..
 
       - uses: jupyterlab/maintainer-tools/.github/actions/update-snapshots@v1
         with:
