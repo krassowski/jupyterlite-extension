@@ -7,7 +7,6 @@ import React from 'react';
  */
 export interface IShareDialogData {
   notebookName: string;
-  isViewOnly: boolean;
   password: string;
 }
 
@@ -31,20 +30,11 @@ const ShareDialogComponent = () => {
     return password;
   };
 
-  const [notebookName, setNotebookName] = React.useState(generateDefaultName());
-  const [isViewOnly, setIsViewOnly] = React.useState(false);
-  const [password, setPassword] = React.useState(generatePassword());
+  const [notebookName, setNotebookName] = React.useState<string>(generateDefaultName());
+  const [password] = React.useState<string>(generatePassword());
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNotebookName(e.target.value);
-  };
-
-  const handleViewOnlyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsViewOnly(e.target.checked);
-  };
-
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
   };
 
   return (
@@ -64,29 +54,21 @@ const ShareDialogComponent = () => {
       />
 
       <div style={{ marginBottom: '15px' }}>
-        <input
-          id="view-only"
-          type="checkbox"
-          checked={isViewOnly}
-          onChange={handleViewOnlyChange}
-          style={{ marginRight: '5px' }}
-        />
-        <label htmlFor="view-only">Share as view-only notebook (password-protected)</label>
-      </div>
-
-      <div style={{ marginBottom: '15px' }}>
-        <label htmlFor="password">Password:</label>
-        <input
+        <label htmlFor="password">
+          Here's the code required to edit the original notebook. Make sure to save this code as it
+          will not appear again:
+        </label>
+        <div
           id="password"
-          type="text"
-          value={password}
-          onChange={handlePasswordChange}
-          disabled={!isViewOnly}
           style={{
             width: '100%',
-            padding: '5px'
+            padding: '5px',
+            fontFamily: 'monospace',
+            fontSize: '14px'
           }}
-        />
+        >
+          {password}
+        </div>
       </div>
     </div>
   );
@@ -94,43 +76,30 @@ const ShareDialogComponent = () => {
 
 export class ShareDialog extends ReactWidget {
   private _notebookName: string;
-  private _isViewOnly: boolean;
-  private _password: string;
 
   constructor() {
     super();
     // Generate default values
     const today = new Date();
     this._notebookName = `Notebook_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-    this._isViewOnly = false;
-
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let password = '';
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    this._password = password;
   }
 
   getValue(): IShareDialogData {
     // Get current values from the DOM
     const nameInput = this.node.querySelector('#notebook-name') as HTMLInputElement;
-    const viewOnlyCheckbox = this.node.querySelector('#view-only') as HTMLInputElement;
-    const passwordInput = this.node.querySelector('#password') as HTMLInputElement;
+    const passwordDiv = this.node.querySelector('#password') as HTMLDivElement;
 
-    if (nameInput && viewOnlyCheckbox && passwordInput) {
+    if (nameInput && passwordDiv && passwordDiv.textContent) {
       return {
         notebookName: nameInput.value,
-        isViewOnly: viewOnlyCheckbox.checked,
-        password: passwordInput.value
+        password: passwordDiv.textContent
       };
     }
 
     // Fallback to stored values
     return {
       notebookName: this._notebookName,
-      isViewOnly: this._isViewOnly,
-      password: this._password
+      password: '' // This shouldn't really happen since the component always renders a password
     };
   }
 
