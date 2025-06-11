@@ -24,6 +24,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('General', () => {
   test('Should load a notebook', async ({ page }) => {
+    await page.waitForTimeout(1000);
     expect(
       await page.locator('.jp-LabShell').screenshot({
         mask: [page.locator('.jp-KernelStatus')],
