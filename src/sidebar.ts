@@ -45,7 +45,7 @@ export const customSidebar: JupyterFrontEndPlugin<void> = {
         }
       }),
       'left',
-      { rank: 100 }
+      { rank: 0 }
     );
   }
 };
