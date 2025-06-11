@@ -35,3 +35,19 @@
   background: #e8e3e3;
   cursor: pointer;
 }
+
+#jp-main-dock-panel[data-mode='single-document'] {
+  padding: 25px !important;
+  background: #d8b8dc;
+}
+
+#jp-main-dock-panel[data-mode='single-document'] .jp-MainAreaWidget {
+  border-radius: 15px;
+}
+
+.jp-SideBar {
+  /* Override colors in sidebar */
+  --jp-layout-color1: #e6e6e6;
+  --jp-layout-color2: #fff;
+  --jp-border-width: 0px;
+}
