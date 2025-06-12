@@ -28,7 +28,17 @@ export const customSidebar: JupyterFrontEndPlugin<void> = {
         if (newWidget && newWidget instanceof SidebarIcon) {
           const cancel = newWidget.execute();
           if (cancel) {
-            sidebar.currentTitle = oldWidget;
+            console.log('Attempting to revert to:', oldWidget.label);
+            if (args.previousTitle) {
+              const previousIndex = sidebar.titles.indexOf(oldWidget);
+              if (previousIndex >= 0) {
+                sidebar.currentIndex = previousIndex;
+              } else {
+                sidebar.currentIndex = -1;
+              }
+            } else {
+              sidebar.currentIndex = -1;
+            }
           }
         }
       },
