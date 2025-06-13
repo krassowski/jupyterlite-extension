@@ -68,19 +68,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
       });
     }
 
-    shell.add(
-      new SidebarIcon({
-        label: 'Notebook',
-        icon: EverywhereIcons.notebook,
-        execute: () => {
-          if (tracker.currentWidget) {
-            shell.activateById(tracker.currentWidget.id);
-          }
+    const sidebarItem = new SidebarIcon({
+      label: 'Notebook',
+      icon: EverywhereIcons.notebook,
+      execute: () => {
+        if (tracker.currentWidget) {
+          shell.activateById(tracker.currentWidget.id);
         }
-      }),
-      'left',
-      { rank: 100 }
-    );
+      }
+    });
+    shell.add(sidebarItem, 'left', { rank: 100 });
+
+    app.shell.activateById(sidebarItem.id);
+    app.restored.then(() => app.shell.activateById(sidebarItem.id));
 
     /**
      * Create a "Share" button

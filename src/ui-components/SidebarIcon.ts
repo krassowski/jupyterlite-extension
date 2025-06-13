@@ -4,13 +4,13 @@ import { StackedPanel } from '@lumino/widgets';
 
 // it could extend Widget, StackedPanel is just temporary as it gives 0-width layout
 export class SidebarIcon extends StackedPanel {
-  constructor(private _options: { label: string; icon: LabIcon; execute: () => void }) {
+  constructor(private _options: { label: string; icon: LabIcon; execute: () => boolean | void }) {
     super();
     this.title.caption = _options.label;
     this.title.icon = _options.icon;
     this.id = UUID.uuid4();
   }
-  protected onBeforeShow() {
-    this._options.execute();
+  execute() {
+    return this._options.execute();
   }
 }

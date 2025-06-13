@@ -4,7 +4,11 @@ import {
   folderIcon,
   addIcon,
   LabIcon,
-  linkIcon
+  linkIcon,
+  runIcon,
+  refreshIcon,
+  stopIcon,
+  fastForwardIcon
 } from '@jupyterlab/ui-components';
 
 import saveSvg from '../style/icons/save.svg';
@@ -15,6 +19,11 @@ import addSvg from '../style/icons/add.svg';
 import linkSvg from '../style/icons/link.svg';
 import competitionSvg from '../style/icons/competition.svg';
 import notebookSvg from '../style/icons/notebook.svg';
+import logoSvg from '../style/icons/logo.svg';
+import runSvg from '../style/icons/run.svg';
+import refreshSvg from '../style/icons/refresh.svg';
+import stopSvg from '../style/icons/stop.svg';
+import fastForwardSvg from '../style/icons/fast-forward.svg';
 
 export namespace EverywhereIcons {
   // Overwrite Jupyter default icons
@@ -38,7 +47,22 @@ export namespace EverywhereIcons {
     name: notebookIcon.name,
     svgstr: notebookSvg
   });
-  notebookIcon;
+  export const run = new LabIcon({
+    name: runIcon.name,
+    svgstr: runSvg
+  });
+  export const refresh = new LabIcon({
+    name: refreshIcon.name,
+    svgstr: refreshSvg
+  });
+  export const stop = new LabIcon({
+    name: stopIcon.name,
+    svgstr: stopSvg
+  });
+  export const fastForward = new LabIcon({
+    name: fastForwardIcon.name,
+    svgstr: fastForwardSvg
+  });
   // Addd custom icons
   export const folderSidebar = new LabIcon({
     name: 'everywhere:folder-sidebar',
@@ -51,5 +75,9 @@ export namespace EverywhereIcons {
   export const competition = new LabIcon({
     name: 'everywhere:competition',
     svgstr: competitionSvg
+  });
+  export const logo = new LabIcon({
+    name: 'everywhere:logo',
+    svgstr: logoSvg
   });
 }

@@ -5,6 +5,7 @@ import { Dialog, showDialog, ReactWidget } from '@jupyterlab/apputils';
 import { PageConfig } from '@jupyterlab/coreutils';
 import { INotebookContent } from '@jupyterlab/nbformat';
 
+import { customSidebar } from './sidebar';
 import { SharingService } from './sharing-service';
 
 import {
@@ -218,4 +219,4 @@ const plugin: JupyterFrontEndPlugin<void> = {
   }
 };
 
-export default [plugin, notebookPlugin, files, competitions];
+export default [plugin, notebookPlugin, files, competitions, customSidebar];
