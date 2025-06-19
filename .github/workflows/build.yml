@@ -49,8 +49,7 @@ jobs:
       run: python -m pip install -U "jupyterlab>=4.0.0,<5"
 
     - name: Restore Playwright browsers cache
-      uses: actions/cache@v3
-      id: playwright-cache
+      uses: actions/cache@v4
       with:
         path: /home/runner/.cache/ms-playwright
         key: playwright-browsers-${{ runner.os }}-v1
