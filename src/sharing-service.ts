@@ -294,15 +294,12 @@ export class SharingService {
    * @param password - Password if notebook is protected
    * @returns API response with updated notebook details
    */
-  async update(id: string, notebook: INotebookContent, password?: string): Promise<IShareResponse> {
+  async update(id: string, notebook: INotebookContent): Promise<IShareResponse> {
     if (!validateNotebookContent(notebook)) {
       throw new Error('Invalid notebook content');
     }
 
-    const requestData: Record<string, any> = { notebook };
-    if (password) {
-      requestData.password = password;
-    }
+    const requestData: Record<string, any> = notebook;
 
     const endpoint = new URL(`notebooks/${id}`, this.api_url);
 

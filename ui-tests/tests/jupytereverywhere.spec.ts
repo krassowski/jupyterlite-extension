@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-async function runCommnad(page: Page, command: string, args: JSONObject = {}) {
+async function runCommand(page: Page, command: string, args: JSONObject = {}) {
   await page.evaluate(
     async ({ command, args }) => {
       await window.jupyterapp.commands.execute(command, args);
