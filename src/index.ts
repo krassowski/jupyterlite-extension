@@ -18,6 +18,17 @@ import { notebookPlugin } from './pages/notebook';
 import { generateDefaultNotebookName } from './notebook-name';
 
 /**
+ * Generate a shareable URL for the currently active notebook.
+ * @param notebookID – The ID of the notebook to share (can be readable_id or sharedId).
+ * @returns A URL string that points to the notebook with the given notebookID.
+ */
+function generateShareURL(notebookID: string): string {
+  const currentUrl = new URL(window.location.href);
+  const baseUrl = `${currentUrl.protocol}//${currentUrl.host}${currentUrl.pathname}`;
+  return `${baseUrl}?notebook=${notebookID}`;
+}
+
+/**
  * Get the current notebook panel
  */
 function getCurrentNotebook(
@@ -43,8 +54,18 @@ const manuallySharing = new WeakSet<NotebookPanel>();
  * @param notebookContent - The content of the notebook to share, from which we extract the ID.
  */
 async function showShareDialog(sharingService: SharingService, notebookContent: INotebookContent) {
-  const id = (notebookContent.metadata.readableId || notebookContent.metadata.sharedId) as string;
-  const shareableLink = sharingService.makeRetrieveURL(id).toString();
+  // Grab the readable ID, or fall back to the UUID.
+  const readableID = notebookContent.metadata?.readableId as string | null;
+  const sharedID = notebookContent.metadata?.sharedId as string;
+
+  const notebookID = readableID ?? sharedID;
+
+  if (!notebookID) {
+    console.error('No notebook ID found for sharing');
+    return;
+  }
+
+  const shareableLink = generateShareURL(notebookID);
 
   const dialogResult = await showDialog({
     title: '',
