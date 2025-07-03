@@ -51,6 +51,13 @@ const TEST_NOTEBOOK = {
   nbformat_minor: 5
 };
 
+async function mockTokenRoute(page: Page) {
+  await page.route('**/api/v1/auth/issue', async route => {
+    const json = { token: 'test-token' };
+    await route.fulfill({ json });
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('lab/index.html');
   await page.waitForSelector('.jp-LabShell');
@@ -67,11 +74,28 @@ test.describe('General', () => {
     ).toMatchSnapshot('application-shell.png');
   });
 
+  test('Dialog windows should shade the notebook area only', async ({ page }) => {
+    const firstCell = page.locator('.jp-Cell');
+    await firstCell
+      .getByRole('textbox')
+      .fill('The shaded area should cover the notebook content, but not the toolbar.');
+    const promise = runCommand(page, 'notebook:restart-kernel');
+    const dialog = page.locator('.jp-Dialog');
+
+    expect(
+      await dialog.screenshot({
+        mask: [dialog.locator('.jp-Dialog-content'), page.locator('.jp-KernelStatus')],
+        maskColor: '#fff'
+      })
+    ).toMatchSnapshot('empty-dialog-over-notebook.png');
+
+    // Close dialog
+    await dialog.press('Escape');
+    await promise;
+  });
+
   test('Should load a view-only notebook', async ({ page }) => {
-    await page.route('**/api/v1/auth/issue', async route => {
-      const json = { token: 'test-token' };
-      await route.fulfill({ json });
-    });
+    await mockTokenRoute(page);
     const notebookId = 'e3b0c442-98fc-1fc2-9c9f-8b6d6ed08a1d';
 
     await page.route('**/api/v1/notebooks/*', async route => {
@@ -97,6 +121,23 @@ test.describe('General', () => {
   test('Should open files page', async ({ page }) => {
     await page.locator('.jp-SideBar').getByTitle('Files').click();
     expect(await page.locator('#je-files').screenshot()).toMatchSnapshot('files.png');
+  });
+});
+
+test.describe('Sharing', () => {
+  test('Should open share dialog', async ({ page }) => {
+    await mockTokenRoute(page);
+    await page.route('**/api/v1/notebooks', async route => {
+      const json = {
+        message: 'Shared!',
+        notebook: { id: 'e3b0c442-98fc-1fc2-9c9f-8b6d6ed08a1d', readable_id: null }
+      };
+      await route.fulfill({ json });
+    });
+    const shareButton = page.locator('.jp-ToolbarButton').getByTitle('Share this notebook');
+    await shareButton.click();
+    const dialog = page.locator('.jp-Dialog-content');
+    expect(await dialog.screenshot()).toMatchSnapshot('share-dialog.png');
   });
 });
 
