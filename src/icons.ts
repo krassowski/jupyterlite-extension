@@ -25,6 +25,8 @@ import refreshSvg from '../style/icons/refresh.svg';
 import stopSvg from '../style/icons/stop.svg';
 import fastForwardSvg from '../style/icons/fast-forward.svg';
 import downloadCaretSvg from '../style/icons/download-caret.svg';
+import imageIconSvg from '../style/icons/image-icon.svg';
+import fileIconSvg from '../style/icons/file-icon.svg';
 
 export namespace EverywhereIcons {
   // Overwrite Jupyter default icons
@@ -64,7 +66,7 @@ export namespace EverywhereIcons {
     name: fastForwardIcon.name,
     svgstr: fastForwardSvg
   });
-  // Addd custom icons
+  // Add custom icons
   export const folderSidebar = new LabIcon({
     name: 'everywhere:folder-sidebar',
     svgstr: folderSidebarSvg
@@ -84,5 +86,13 @@ export namespace EverywhereIcons {
   export const downloadCaret = new LabIcon({
     name: 'everywhere:download-caret',
     svgstr: downloadCaretSvg
+  });
+  export const imageIcon = new LabIcon({
+    name: 'everywhere:image-icon',
+    svgstr: imageIconSvg
+  });
+  export const fileIcon = new LabIcon({
+    name: 'everywhere:file-icon',
+    svgstr: fileIconSvg
   });
 }

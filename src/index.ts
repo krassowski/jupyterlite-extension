@@ -18,6 +18,8 @@ import { notebookPlugin } from './pages/notebook';
 import { generateDefaultNotebookName } from './notebook-name';
 import { viewOnlyNotebookFactoryPlugin } from './view-only';
 
+import '../style/index.css';
+
 /**
  * Generate a shareable URL for the currently active notebook.
  * @param notebookID – The ID of the notebook to share (can be readable_id or sharedId).
