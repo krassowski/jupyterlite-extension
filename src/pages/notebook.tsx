@@ -150,6 +150,19 @@ export const notebookPlugin: JupyterFrontEndPlugin<void> = {
     for (const toolbarName of ['Notebook', 'ViewOnlyNotebook']) {
       toolbarRegistry.addFactory(
         toolbarName,
+        'createCopy',
+        () =>
+          new ToolbarButton({
+            label: 'Create Copy',
+            tooltip: 'Create an editable copy of this notebook',
+            className: 'je-CreateCopyButton',
+            onClick: () => {
+              void commands.execute(Commands.createCopyNotebookCommand);
+            }
+          })
+      );
+      toolbarRegistry.addFactory(
+        toolbarName,
         'downloadDropdown',
         () => new DownloadDropdownButton(commands)
       );

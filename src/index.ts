@@ -16,7 +16,7 @@ import { Commands } from './commands';
 import { competitions } from './pages/competitions';
 import { notebookPlugin } from './pages/notebook';
 import { generateDefaultNotebookName } from './notebook-name';
-import { viewOnlyNotebookFactoryPlugin } from './view-only';
+import { IViewOnlyNotebookTracker, viewOnlyNotebookFactoryPlugin } from './view-only';
 
 import '../style/index.css';
 
@@ -144,8 +144,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
   id: 'jupytereverywhere:plugin',
   description: 'A Jupyter extension for k12 education',
   autoStart: true,
-  requires: [INotebookTracker],
-  activate: (app: JupyterFrontEnd, tracker: INotebookTracker) => {
+  requires: [INotebookTracker, IViewOnlyNotebookTracker],
+  activate: (
+    app: JupyterFrontEnd,
+    tracker: INotebookTracker,
+    readonlyTracker: IViewOnlyNotebookTracker
+  ) => {
     const { commands, shell } = app;
 
     if ((shell as ILabShell).mode !== 'single-document') {
@@ -233,6 +237,70 @@ const plugin: JupyterFrontEndPlugin<void> = {
           await handleNotebookSharing(notebookPanel, sharingService, true);
         } catch (error) {
           console.error('Error in share command:', error);
+        }
+      }
+    });
+    /**
+     * Add custom Create Copy notebook command
+     * Note: this command is supported and displayed only for View Only notebooks.
+     */
+    commands.addCommand(Commands.createCopyNotebookCommand, {
+      label: 'Create Copy',
+      execute: async () => {
+        try {
+          const readonlyPanel = readonlyTracker.currentWidget;
+
+          if (!readonlyPanel) {
+            console.warn('No view-only notebook is currently active.');
+            return;
+          }
+
+          const originalContent = readonlyPanel.context.model.toJSON() as INotebookContent;
+          // Remove any sharing-specific metadata from the copy,
+          // as we create a fresh notebook with new metadata below.
+          const purgedMetadata = { ...originalContent.metadata };
+          delete purgedMetadata.isSharedNotebook;
+          delete purgedMetadata.sharedId;
+          delete purgedMetadata.readableId;
+          delete purgedMetadata.domainId;
+          delete purgedMetadata.sharedName;
+          delete purgedMetadata.lastShared;
+
+          const copyContent: INotebookContent = {
+            ...originalContent,
+            metadata: purgedMetadata
+          };
+
+          const result = await app.serviceManager.contents.newUntitled({
+            type: 'notebook'
+          });
+
+          await app.serviceManager.contents.save(result.path, {
+            type: 'notebook',
+            format: 'json',
+            content: copyContent
+          });
+
+          // Open the notebook in the normal notebook factory, and
+          // close the previously opened notebook (th view-only one).
+          await commands.execute('docmanager:open', {
+            path: result.path
+          });
+          await readonlyPanel.close();
+
+          // Remove notebook param from the URL
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete('notebook');
+          window.history.replaceState({}, '', currentUrl.toString());
+
+          console.log(`Notebook copied as: ${result.path}`);
+        } catch (error) {
+          console.error('Failed to create notebook copy:', error);
+          await showDialog({
+            title: 'Error while creating a copy of the notebook',
+            body: ReactWidget.create(createErrorDialog(error)),
+            buttons: [Dialog.okButton()]
+          });
         }
       }
     });

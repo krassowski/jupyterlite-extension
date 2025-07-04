@@ -25,6 +25,8 @@
   --je-sidebar-width: var(--jp-private-sidebar-tab-width);
   --je-toolbar-height: var(--jp-private-toolbar-height);
   --je-margin-below-toolbar: 10px;
+  --je-slate-blue-gradient:
+    linear-gradient(90deg, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 20%) 100%), #4b3187;
 }
 
 .jp-Dialog-content {
@@ -47,14 +49,13 @@
 }
 
 .jp-Dialog-content .jp-Dialog-button {
-  background: linear-gradient(90deg, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 20%) 100%), #4b3187 !important;
+  background: var(--je-slate-blue-gradient) !important;
   box-shadow: 0 1.5px 3px rgb(0 0 0 / 5%);
   border-radius: var(--je-dialog-round-corners);
   font-family: var(--je-font-family);
   font-style: normal;
   font-weight: 500;
   line-height: 150%;
-  color: #fff;
 }
 
 .jp-Dialog-header {
@@ -134,6 +135,10 @@
   border-top-right-radius: 0;
 }
 
+.jp-NotebookPanel-toolbar.je-ViewOnlyNotebookToolbar {
+  border: 3px solid var(--je-slate-blue) !important;
+}
+
 #jp-main-dock-panel[data-mode='single-document'] {
   padding: var(--je-document-padding) !important;
   background: #d8b8dc;
@@ -142,4 +147,19 @@
 #jp-main-dock-panel[data-mode='single-document'] .jp-MainAreaWidget {
   border-radius: var(--je-round-corners);
   background: transparent;
+}
+
+.jp-ToolbarButtonComponent.je-CreateCopyButton {
+  background: var(--je-slate-blue-gradient);
+  color: white;
+  border-radius: var(--je-round-corners);
+  font-family: var(--je-font-family);
+  font-weight: 600;
+  padding: 4px 12px;
+  border: none;
+  box-shadow: 1px 2px 0 #0000006f !important; /* pretty much convinced my browser is haunted */
+}
+
+.jp-ToolbarButtonComponent.je-CreateCopyButton:hover {
+  background: #2c1f5c;
 }

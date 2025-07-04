@@ -182,3 +182,35 @@ test.describe('Files', () => {
     await expect(page.locator('.je-FileTile-label', { hasText: 'b-dataset.csv' })).toBeVisible();
   });
 });
+
+test('Should remove View Only banner when the Create Copy button is clicked', async ({ page }) => {
+  await mockTokenRoute(page);
+
+  const notebookId = 'e3b0c442-98fc-1fc2-9c9f-8b6d6ed08a1d';
+
+  await page.route('**/api/v1/notebooks/*', async route => {
+    const json = {
+      id: notebookId,
+      domain_id: 'domain',
+      readable_id: null,
+      content: TEST_NOTEBOOK
+    };
+    await route.fulfill({ json });
+  });
+
+  // Open view-only notebook
+  await page.goto(`lab/index.html?notebook=${notebookId}`);
+  await expect(page.locator('.je-ViewOnlyHeader')).toBeVisible();
+
+  const createCopyButton = page.locator('.jp-ToolbarButtonComponent.je-CreateCopyButton');
+  await createCopyButton.click();
+  await expect(page.locator('.je-ViewOnlyHeader')).toBeHidden({
+    timeout: 10000
+  });
+
+  // Check toolbar items typical of an editable notebook are present
+  await expect(page.locator('.jp-NotebookPanel-toolbar [data-jp-item-name="save"]')).toBeVisible();
+  await expect(
+    page.locator('.jp-NotebookPanel-toolbar [data-jp-item-name="insert"]')
+  ).toBeVisible();
+});
