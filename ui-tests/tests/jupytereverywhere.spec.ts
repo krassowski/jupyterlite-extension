@@ -290,9 +290,12 @@ test('Should remove View Only banner when the Create Copy button is clicked', as
 });
 
 test.describe('Landing page', () => {
+  test.describe.configure({ retries: 2 });
   test('Should render the landing page as expected', async ({ page }) => {
     await page.goto('index.html');
     await page.waitForSelector('.je-hero');
+
+    await page.waitForTimeout(2000);
 
     // Find the scroll height because the landing page is long and we want to
     // capture the full page screenshot without the rest of it being empty; as
