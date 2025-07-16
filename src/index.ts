@@ -22,6 +22,8 @@ import {
   ViewOnlyNotebookPanel
 } from './view-only';
 
+import { KERNEL_DISPLAY_NAMES, switchKernel } from './kernels';
+
 /**
  * Generate a shareable URL for the currently active notebook.
  * @param notebookID – The ID of the notebook to share (can be readable_id or sharedId).
@@ -256,6 +258,34 @@ const plugin: JupyterFrontEndPlugin<void> = {
       command: 'jupytereverywhere:save-and-share',
       keys: ['Accel S'],
       selector: '.jp-Notebook'
+    });
+
+    commands.addCommand('jupytereverywhere:switch-kernel', {
+      label: args => {
+        const kernel = (args['kernel'] as string) || '';
+        const isActive = args['isActive'] as boolean;
+        const display = KERNEL_DISPLAY_NAMES[kernel] || kernel;
+
+        if (isActive) {
+          return display;
+        }
+        return `Switch to ${display}`;
+      },
+      execute: async args => {
+        const kernel = args['kernel'] as string | undefined;
+        const panel = tracker.currentWidget;
+
+        if (!kernel) {
+          console.warn('No kernel specified for switching.');
+          return;
+        }
+        if (!panel) {
+          console.warn('No active notebook panel.');
+          return;
+        }
+
+        await switchKernel(panel, kernel);
+      }
     });
 
     /**

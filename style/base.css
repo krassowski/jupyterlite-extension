@@ -31,7 +31,8 @@
     linear-gradient(90deg, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 20%) 100%), #4b3187;
 }
 
-.je-DownloadDropdownButton-menu {
+.je-DownloadDropdownButton-menu,
+.je-KernelSwitcherDropdownButton-menu {
   border-radius: 4px;
   color: var(--je-slate-blue);
   font-family: var(--je-font-family);
@@ -39,11 +40,14 @@
   border-color: var(--je-border-color);
 }
 
-.je-DownloadDropdownButton-menu .lm-Menu-item {
+.je-DownloadDropdownButton-menu .lm-Menu-item,
+.je-KernelSwitcherDropdownButton-menu .lm-Menu-item {
   border-top: 1px solid var(--je-border-color);
+  cursor: pointer;
 }
 
-.je-DownloadDropdownButton-menu .lm-Menu-item:first-of-type {
+.je-DownloadDropdownButton-menu .lm-Menu-item:first-of-type,
+.je-KernelSwitcherDropdownButton-menu .lm-Menu-item:first-of-type {
   border: 0;
 }
 
