@@ -5,8 +5,6 @@
 }
 
 .je-Help {
-  --je-scale: 0.85; /* TODO remove after rebase with scale branch */
-
   padding: calc(var(--je-scale) * 5px) calc(var(--je-scale) * 50px);
   font-family: var(--je-font-family);
   color: var(--je-slate-blue);
