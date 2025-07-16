@@ -141,6 +141,11 @@ test.describe('General', () => {
     await page.locator('.jp-SideBar').getByTitle('Files').click();
     expect(await page.locator('#je-files').screenshot()).toMatchSnapshot('files.png');
   });
+
+  test('Should open the help page', async ({ page }) => {
+    await page.locator('.jp-SideBar').getByTitle('Help Centre').click();
+    expect(await page.locator('#je-help').screenshot()).toMatchSnapshot('help.png');
+  });
 });
 
 test.describe('Sharing', () => {
@@ -234,9 +239,6 @@ test.describe('Download', () => {
 
 test.describe('Files', () => {
   test('Should upload two files and display their thumbnails', async ({ page }) => {
-    await page.goto('lab/index.html');
-    await page.waitForSelector('.jp-LabShell');
-
     await page.locator('.jp-SideBar').getByTitle('Files').click();
 
     await page.locator('.je-FileTile').first().click(); // the first tile will always be the "add new" one
