@@ -81,7 +81,7 @@ export class HelpCentre extends ReactWidget {
         The user guide will help you get started coding in your favorite language:
         <ul>
           <li>
-            Click <a href="#">here</a> for a R Coding Guide
+            Click <a href="#">here</a> for an R Coding Guide
           </li>
           <li>
             Click <a href="#">here</a> for a Python Coding Guide
